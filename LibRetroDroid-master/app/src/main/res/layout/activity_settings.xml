@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <!-- Same adjustable clamp boundary as every other clamp-aware screen (see BoundaryController). -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/boundary_guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.65" />
+
+    <LinearLayout
+        android:id="@+id/toolbar_row"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/settings_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/settings_title"
+            android:textColor="@android:color/white"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/close_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:text="@string/settings_icon_close"
+            android:textSize="20sp"
+            android:textColor="@android:color/white"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+    <!-- Scrollable tab strip rather than equal-weight tabs — "Achievements" is
+         long enough that fixed-width tabs would squeeze the shorter labels. -->
+    <HorizontalScrollView
+        android:id="@+id/section_tabs_scroll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_row"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:id="@+id/section_tabs_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/tab_general"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:text="@string/settings_section_general"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/tab_system"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:text="@string/settings_section_system"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/tab_graphics"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:text="@string/settings_section_graphics"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/tab_controller"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:text="@string/settings_section_controller"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/tab_audio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:text="@string/settings_section_audio"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/tab_achievements"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:text="@string/settings_section_achievements"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/tab_advanced"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:text="@string/settings_section_advanced"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/tab_about"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:text="@string/settings_section_about"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
+
+    <ScrollView
+        android:id="@+id/section_content_scroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:padding="16dp"
+        app:layout_constraintTop_toBottomOf="@id/section_tabs_scroll"
+        app:layout_constraintBottom_toTopOf="@id/boundary_guideline"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- Populated at runtime in SettingsActivity: the fast-forward mode + key
+                 binding rows. -->
+            <LinearLayout
+                android:id="@+id/section_general"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <!-- Populated at runtime in SettingsActivity: a system-tab row plus one row
+                 per CoreOptions.Option for whichever system is selected (relocated from
+                 Advanced 2026-08-16). -->
+            <LinearLayout
+                android:id="@+id/section_system"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <!-- Populated at runtime in SettingsActivity: one renderer row per
+                 GameSystem with non-empty rendererChoices. Currently only PS1
+                 qualifies, but nothing here names PS1 specifically. -->
+            <LinearLayout
+                android:id="@+id/section_graphics"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <!-- Populated at runtime in SettingsActivity: a system-tab row (which
+                 GameSystem's bindings are being edited) plus one row per
+                 ControllerBindings.Target for whichever system is selected. -->
+            <LinearLayout
+                android:id="@+id/section_controller"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <!-- Populated at runtime in SettingsActivity: the low-latency audio toggle
+                 plus its explanatory note. -->
+            <LinearLayout
+                android:id="@+id/section_audio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <!-- Populated at runtime in SettingsActivity: login status/action row
+                 plus an explanatory note. See RetroAchievementsClient/RomHasher for
+                 the login + hash-identification foundation this section exposes;
+                 achievement lists and unlock tracking aren't built yet. -->
+            <LinearLayout
+                android:id="@+id/section_achievements"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <!-- Placeholder again as of 2026-08-16 (core options moved to System);
+                 populated at runtime in SettingsActivity with just settings_coming_soon
+                 for now. -->
+            <LinearLayout
+                android:id="@+id/section_advanced"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <!-- Version, attribution and the source link the GPL-3 obligation needs, plus a
+                 copyable diagnostics block for bug reports. Populated at runtime. -->
+            <LinearLayout
+                android:id="@+id/section_about"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+    </ScrollView>
+
+    <!-- Opaque and touch-swallowing, matching every other clamp-aware screen. -->
+    <View
+        android:id="@+id/occlusion_zone"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@android:color/black"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toBottomOf="@id/boundary_guideline"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <View
+        android:id="@+id/boundary_handle"
+        android:layout_width="56dp"
+        android:layout_height="24dp"
+        android:background="@drawable/boundary_handle_bg"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/boundary_guideline"
+        app:layout_constraintBottom_toBottomOf="@id/boundary_guideline" />
+
+    <!-- First-run only, retired for good (on any clamp-aware screen) the first
+         time boundary_handle is touched anywhere. See BoundaryController. -->
+    <TextView
+        android:id="@+id/boundary_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/boundary_hint_text"
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:padding="10dp"
+        android:background="@drawable/boundary_hint_bg"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/boundary_handle"
+        android:layout_marginBottom="6dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

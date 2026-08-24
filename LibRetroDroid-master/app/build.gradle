@@ -1,0 +1,73 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion 34
+    defaultConfig {
+        applicationId 'com.android.gl2jni'
+        // Placeholder scheme -- set these to whatever you want before sharing a build. They
+        // are what the About tab reports and what a bug report identifies the build by, so
+        // two people running "TacoBoy" should never be unable to say which one they have.
+        versionCode 1
+        versionName '0.1.0'
+        minSdkVersion 21
+        targetSdkVersion 33
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'),
+                          'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    namespace = "com.android.libretrodroid"
+}
+
+dependencies {
+    api project(path: ':libretrodroid')
+    implementation "androidx.core:core-ktx:1.9.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.5.1"
+    implementation "androidx.appcompat:appcompat:1.5.1"
+
+    implementation "androidx.constraintlayout:constraintlayout:2.1.4"
+    implementation "com.github.swordfish90:radialgamepad:08d1dd95"
+    implementation "androidx.documentfile:documentfile:1.0.1"
+    implementation "androidx.recyclerview:recyclerview:1.3.2"
+    implementation "io.coil-kt:coil:2.6.0"
+
+    // CHD (PS1 disc image) per-hunk decompression. Zstandard (cdzs codec, 170 of the
+    // user's 209 real PS1 files) needs a real native decoder, not a "pure Java" one --
+    // io.airlift:aircompressor looked right on paper (pure Java, no java.lang.foreign)
+    // but crashed on-device with NoSuchFieldError on sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET,
+    // a field desktop OpenJDK's Unsafe has that Android's ART Unsafe shim doesn't -- a gap
+    // the JVM unit tests couldn't see since they run on a real desktop JVM. zstd-jni ships
+    // an actual Android .aar with prebuilt natives per ABI instead.
+    implementation "org.tukaani:xz:1.10"
+    implementation "com.github.luben:zstd-jni:1.5.7-3@aar"
+
+    // Pure-JVM unit tests for deterministic parsing logic (CHD container, ISO9660, RA
+    // hashing) — fast to run against real captured bytes, no device/adb round trip needed.
+    // zstd-jni needs the plain jar (not @aar) here -- these tests run on a desktop JVM,
+    // and the plain jar bundles natives for desktop platforms too.
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "com.github.luben:zstd-jni:1.5.7-3"
+    // Android's org.json is a compile-only stub (throws on every call under a plain JVM
+    // unit test) -- the real reference implementation for testing RetroAchievementsClient's
+    // JSON parsing without needing Robolectric/instrumentation.
+    testImplementation "org.json:json:20250517"
+}
+
+repositories {
+    mavenCentral()
+}
+
