@@ -1,0 +1,40 @@
+# Line endings, pinned so they can never become a source of noise.
+#
+# Git for Windows sets core.autocrlf=true system-wide, which converts on checkout and
+# back on commit. That mostly works, but it is a per-machine setting: anyone who clones
+# with a different value gets different working-tree endings, and a file can then appear
+# entirely rewritten in a diff when nothing about it changed. Attributes live in the repo,
+# so they apply to every clone regardless of local config, and they win over autocrlf.
+#
+# LF everywhere, in the repo and in the working tree. Modern Windows editors (VS Code,
+# Android Studio) handle LF without complaint.
+* text=auto eol=lf
+
+# Windows batch files are the exception: cmd.exe wants CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# The Gradle wrapper script is executed by a POSIX shell and must stay LF, even though
+# the .bat beside it must not.
+gradlew text eol=lf
+
+# Binaries: never converted, never diffed as text. Git usually detects these on its own,
+# but the emulator cores are the single most important thing in the tree to not mangle,
+# so they are declared rather than left to heuristics.
+*.so binary
+*.bak binary
+*.bin binary
+*.img binary
+*.apk binary
+*.jar binary
+*.aar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.chd binary
