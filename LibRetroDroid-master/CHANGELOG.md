@@ -5,6 +5,50 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-08-24 (16 KB page alignment)
+
+**Every native library TacoBoy ships is now 16 KB page-aligned.** Newer Android hardware is
+moving to 16 KB memory pages, and a library whose LOAD segments are aligned to 4 KB cannot be
+mapped on such a device — the app simply fails to load. The Advanced tab has carried a note
+about this since long before it was actionable; that note is now accurate rather than a
+warning.
+
+**Measured rather than assumed, and only two things were actually broken.** Of the nine
+native libraries in the APK, seven were already fine:
+
+| library | before | after |
+|---|---|---|
+| Gambatte (GB/GBC) | 0x1000 | **0x4000** |
+| mGBA (GBA) | 0x1000 | **0x4000** |
+| Genesis Plus GX, Handy, Beetle PSX HW, SwanStation | 0x4000 | unchanged |
+| Snes9x | 0x10000 | unchanged (64 KB is a multiple of 16 KB) |
+| liblibretrodroid (ours) | 0x4000 | unchanged — NDK 26.1 already aligns it |
+| libzstd-jni | 0x4000 | unchanged |
+
+**The two broken ones could not be fixed by build settings**, because they are prebuilt
+binaries from the libretro buildbot rather than anything compiled here. Replaced with current
+buildbot builds, which are produced with a newer NDK and ship aligned. Both kept their
+existing filenames — including mGBA's `lib` prefix, which does not match the buildbot's own
+naming — so no code changed. Previous builds are in `core-backups/` as
+`*.pre-16kb-2026-08-24.bak`. **Hardware-tested**: a GBA game and a Game Boy Color game both
+load and run at 60fps on the replaced cores.
+
+**Zip alignment turned out not to apply.** Native libraries are stored *compressed* in the
+APK, in release as well as debug, because `minSdkVersion 21` puts AGP into legacy packaging.
+Compressed libraries are extracted to the filesystem when the app installs and loaded from
+there, so the loader never maps them out of the APK and their offsets within it are
+irrelevant. Only the ELF alignment matters. **If minSdk is ever raised to 23+**, AGP will
+switch to uncompressed libraries mapped directly from the APK, and 16 KB *zip* alignment will
+then be required too — which needs AGP 8.5.1+ (this project is on 8.4.0).
+
+**Not verified: actually running on a 16 KB device.** The test phone reports a 4096-byte page
+size, so what has been confirmed is that every library is correctly aligned, not that the app
+has been observed working on 16 KB hardware.
+
+`tools-check-16kb.sh` verifies all of this and exits non-zero on failure, so it can gate a
+release. Its test is arithmetic — a multiple of 16384 — rather than a glob for "0x1000", which
+in a first version flagged Snes9x's perfectly valid 0x10000 as broken.
+
 ## 2026-08-24 (About tab — licences, source link, diagnostics)
 
 Replaces roadmap 4.3's "Getting started" flow, which assumed a core install/update step this
