@@ -13,6 +13,12 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 31
+
+        // Matches the app module: only arm64-v8a ships, so only arm64-v8a is compiled.
+        // This also cuts the native build to a quarter of the work.
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
         versionCode 1
         versionName "1.0"
 

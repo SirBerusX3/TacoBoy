@@ -5,6 +5,32 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-08-24 (drop dead weight inherited from the sample)
+
+**arm64-v8a only.** The APK carried `armeabi-v7a`, `x86` and `x86_64` builds of
+`liblibretrodroid` and `libzstd` — but the emulator cores are prebuilt binaries that only
+exist for arm64, so on any other ABI the app installed and then had nothing to run. Six
+megabytes of libraries for architectures that cannot emulate anything. `abiFilters
+'arm64-v8a'` in both modules means such a device now declines the install instead of
+accepting a broken one, and the native build does a quarter of the work it did.
+
+**Removed `SampleActivity` and `VirtualGamePadConfigs`**, LibretroDroid's demo screen and its
+pad layout. Nothing in TacoBoy referenced either; they were reachable only through their own
+manifest entry. This is the activity whose launcher intent-filter once produced a duplicate
+app icon — that can no longer recur, because the activity is gone rather than patched. It was
+also an exported activity nothing needed.
+
+**That removed a whole dependency**: `radialgamepad` was used only by the sample. TacoBoy has
+its own `TouchControls`, which is a custom View precisely because the pad had to fit the
+Pocket Taco's clamp geometry.
+
+**Debug APK 17.2 MB → 13.8 MB; release APK is 11.5 MB** and now contains exactly nine native
+libraries: the seven cores, `liblibretrodroid`, and `libzstd`. (The earlier release APK's
+size was never recorded, so only the debug figure is a measured before/after.)
+
+Verified on device afterwards: a Game Boy game runs at 60fps, and
+`cmd package query-activities` reports exactly one launcher entry.
+
 ## 2026-08-24 (16 KB page alignment)
 
 **Every native library TacoBoy ships is now 16 KB page-aligned.** Newer Android hardware is
