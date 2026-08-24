@@ -19,7 +19,12 @@
 -->
 
 <resources>
-    <string name="activity_title">LibretroDroid</string>
+    <!-- The application label: what Android shows in permission dialogs, the Apps list,
+         battery usage and permission screens. It said "LibretroDroid" until 2026-08-24,
+         so a first-run folder grant asked the user to "Allow LibretroDroid to access
+         folder" for an app they installed as TacoBoy. The launcher looked right only
+         because TacoBoyActivity overrides the label for its own entry. -->
+    <string name="activity_title">TacoBoy</string>
     <string name="tacoboy_activity_title">TacoBoy</string>
     <string name="rom_picker_hint">Open the library to select your ROMs.</string>
     <string name="rom_picker_button">Open Library</string>

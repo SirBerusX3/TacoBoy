@@ -21,6 +21,14 @@ local.properties
 *.iml
 .vscode/
 
+# Signing credentials. The keystore itself is kept outside the repository entirely, but
+# these patterns exist so that a copy landing here by accident is not committed. Losing the
+# key means never being able to update an existing install; leaking it means someone else
+# can sign builds that Android treats as yours.
+*.jks
+*.keystore
+keystore.properties
+
 # OS noise.
 .DS_Store
 Thumbs.db

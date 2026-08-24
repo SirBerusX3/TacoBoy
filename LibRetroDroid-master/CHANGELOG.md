@@ -5,6 +5,55 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-08-24 (release signing — and the first release build ever run)
+
+**The release APK was unsigned, and an unsigned APK cannot be installed by anyone.** That was
+the single hard blocker on handing a build to another person. There is now a release keystore
+and a signing config, and `assembleRelease` produces `app-release.apk` verified under
+signature schemes v1, v2 and v3.
+
+**Where the credentials live.** The keystore is at `~/.android-keystores/tacoboy-release.jks`
+— deliberately *outside* the repository, so that no mistake in `.gitignore` can commit it.
+Credentials are in `keystore.properties` at the project root, which is gitignored, along with
+`*.jks` and `*.keystore` as a second line of defence. **Both must be backed up**: lose the key
+and no future build can update an existing install; users would have to uninstall, losing
+their saves. There is no recovery.
+
+**The config is deliberately optional.** A clone without the keystore still builds, and only
+`assembleRelease` is affected. Hard-failing would mean nobody but this machine could build the
+project — a poor trade for a GPL-3 project that must be able to hand out its source.
+
+**Debug is signed with the same key.** Android refuses to update an installed app with one
+signed by a different key, so mixed signing makes every swap between debug and release an
+uninstall — taking ROM folder grants, BIOS files and save states with it. Matching them makes
+the two interchangeable from here on.
+
+**v3 signing enabled**, which records the signing lineage and is the only mechanism for
+rotating to a new key later without every existing install refusing the update. Impossible to
+add retroactively to builds already handed out.
+
+**A release build had never been executed — until now.** Tested side-by-side under a temporary
+`applicationIdSuffix` so the real install was never at risk (that suffix has been reverted;
+the test app is uninstalled). It installed, granted a ROM folder, scanned the library, loaded
+a core and ran a GBA game. R8 is off, so there was less to go wrong than usual, but "never
+run" is not a state to release from.
+
+**Found while doing it: the app told users it was LibretroDroid.** The *application* label was
+still `LibretroDroid`, so a first-run folder grant asked to "Allow LibretroDroid to access
+folder" for an app installed as TacoBoy — as did the Apps list, battery usage and permission
+screens. The launcher looked correct only because `TacoBoyActivity` overrides the label for
+its own entry. Now `TacoBoy` throughout. This is the sort of thing only a genuine first-run
+finds, which is an argument for doing more of them.
+
+Also added the `proguard-rules.pro` the build script has always named but which never existed
+— harmless while `minifyEnabled = false`, and a trap waiting for whoever first turns shrinking
+on. It documents what would need keeping: JNI entry points, and the zstd/xz codecs reached
+reflectively during CHD decoding.
+
+**Note for future ABI or applicationId changes**: both leave stale `merged_native_libs`
+intermediates that fail packaging with no useful message. `rm -rf app/build/intermediates`
+clears it.
+
 ## 2026-08-24 (drop dead weight inherited from the sample)
 
 **arm64-v8a only.** The APK carried `armeabi-v7a`, `x86` and `x86_64` builds of

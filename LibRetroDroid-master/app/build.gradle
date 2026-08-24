@@ -1,6 +1,17 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+// Release signing credentials, kept out of git (see keystore.properties and .gitignore).
+// Deliberately optional: a clone without the keystore still builds and still produces a
+// working debug APK, and only `assembleRelease` is affected. A hard failure here would mean
+// nobody but this machine could build the project at all, which is a poor trade for a
+// GPL-3 project that has to be able to hand out its source.
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
     compileSdkVersion 34
     defaultConfig {
@@ -23,11 +34,47 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            if (keystoreProps['storeFile']) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+                // v1+v2 are what actually gate installation; v3 additionally records the
+                // signing lineage, which is the only mechanism for rotating to a new key
+                // later without every existing install refusing the update. Cheap to have
+                // and impossible to add retroactively to builds already handed out.
+                enableV3Signing true
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // R8 stays off. Nothing here is size-constrained by Java code -- the APK is
+            // almost entirely native libraries -- and shrinking would put reflection-driven
+            // paths (JNI callbacks, the vendored zstd/xz codecs) at risk for no real gain.
             minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'),
                           'proguard-rules.pro'
+            // Unsigned unless the keystore is present. An unsigned APK cannot be installed
+            // by anyone, so a release build that silently produced one was the single thing
+            // standing between this project and being shareable.
+            if (keystoreProps['storeFile']) {
+                signingConfig signingConfigs.release
+            }
+        }
+
+        debug {
+            // Signed with the same release key on purpose. Android refuses to update an
+            // installed app with one signed by a different key, so mixed signing means every
+            // swap between debug and release is an uninstall -- which takes the ROM folder
+            // grants, BIOS files and save states with it. Matching them makes the two
+            // interchangeable on a device.
+            if (keystoreProps['storeFile']) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
