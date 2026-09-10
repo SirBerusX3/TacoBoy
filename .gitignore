@@ -29,6 +29,12 @@ local.properties
 *.keystore
 keystore.properties
 
+# JVM heap dumps. Gradle writes these next to the build when a task dies of an
+# OutOfMemoryError, and they are the size of the heap that died -- the one committed by
+# mistake in "Drop dead weight" was 644 MB, and had to be purged from history on
+# 2026-09-10. Never worth keeping: they describe one crash on one machine.
+*.hprof
+
 # OS noise.
 .DS_Store
 Thumbs.db
