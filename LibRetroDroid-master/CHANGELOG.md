@@ -5,6 +5,60 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-10 (released publicly as v0.2.0)
+
+TacoBoy is public: `SirBerusX3/TacoBoy`, GPL-3.0, with `v0.2.0` tagged and an
+`app-release.apk` attached to the GitHub release.
+
+**The tag exists because GPL-3 asks for the source corresponding to the binary someone was
+given, and `main` moves.** A link to a branch answers "here is the project"; a tag answers
+"here is what built the file you have". Verified from outside by downloading the asset
+unauthenticated, the way a stranger would: HTTP 200, and its SHA-256 matches the checksum
+printed in the release notes (`da8e1ca7...`), so the verification instructions are true
+for the file people actually receive rather than for the one on this machine.
+
+The release notes lead with what would otherwise become confused issues: arm64-v8a only,
+no games or BIOS included, achievements softcore only, and -- most important for anyone
+who had an earlier personal build -- that the applicationId change means this installs
+*alongside* the old app rather than updating it, so saves and BIOS do not carry over.
+
+### Two footguns specific to this repository
+
+Both stem from `upstream` being a configured remote, and both were hit or nearly hit while
+publishing:
+
+  - **`gh` resolves to `Swordfish90/LibretroDroid`.** Creating the release without
+    `--repo SirBerusX3/TacoBoy` failed with a request to push the tag to *upstream*. It
+    failed safely, but every `gh` command here needs `--repo`.
+  - **Never `git push --tags`.** Fetching upstream brought all 36 of LibretroDroid's
+    version tags (`0.1.0` through `0.14.0`) into this repository. They are local only;
+    `v0.2.0` was pushed by name. A blanket `--tags` would publish the lot and present
+    years of releases that were never ours. Note upstream has its own `0.2.0` -- ours is
+    `v0.2.0`, so they do not collide, but the resemblance is not helpful.
+
+### Known and deliberate, carried into the next session
+
+Not defects to be surprised by later; each was considered and left:
+
+  - **Achievements are softcore only.** The two hardcore auto-fails -- no real guard on
+    `onLoadSlot`, and no game reset when switching casual to hardcore -- are described with
+    a cost-ordered fix list in `RETROACHIEVEMENTS-COMPLIANCE.md`. Section D means
+    eligibility cannot be applied for yet regardless.
+  - **The user agent still omits the active core**, which that audit's C1 asks for. It
+    needs the client to know which core is loaded.
+  - **`targetSdk 33`** keeps this off Google Play. Dropping `MANAGE_EXTERNAL_STORAGE`
+    removed the other blocker, so the SDK level is now the only one.
+  - **The 61 core option descriptions** are verified to exist and to map one-to-one to live
+    options, but not checked against what each core actually does. That wants the options
+    in front of a device.
+  - **`versionCode 1` is spent** on builds that only ever existed on a test device. The
+    first public build is 2.
+
+**The signing key now matters more than it did this morning.** It has signed something in
+public hands, so replacing it is no longer a private inconvenience -- every install would
+have to be uninstalled. Backed up to cloud storage on release day, and the practice is a
+copy at the end of every session.
+
 ## 2026-09-10 (pre-release pass: GPL source link, dead permissions, honest user agent)
 
 Four things that were survivable while the only install was a personal test device and are
