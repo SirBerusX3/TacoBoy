@@ -15,10 +15,16 @@ if (keystorePropsFile.exists()) {
 android {
     compileSdkVersion 34
     defaultConfig {
-        applicationId 'com.android.gl2jni'
-        // Placeholder scheme -- set these to whatever you want before sharing a build. They
-        // are what the About tab reports and what a bug report identifies the build by, so
-        // two people running "TacoBoy" should never be unable to say which one they have.
+        // The app's permanent identity on Android, set 2026-09-10, replacing the
+        // 'com.android.gl2jni' placeholder inherited from the LibretroDroid sample.
+        // Changing it again after anyone else has installed is not a rename -- Android
+        // treats it as a different app entirely, so the old install stays put, cannot be
+        // updated, and its filesDir (save states, BIOS, presets, prefs) is unreachable
+        // from the new one. Fixed now, while the only install is a personal test device.
+        applicationId 'com.tacoboy'
+        // Version fields. These are what the About tab reports and what a bug report
+        // identifies the build by, so two people running "TacoBoy" should never be unable
+        // to say which one they have. Bump before sharing a build.
         versionCode 1
         versionName '0.1.0'
         minSdkVersion 21

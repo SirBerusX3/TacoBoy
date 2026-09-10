@@ -20,7 +20,7 @@ import sys
 import time
 
 ADB = os.path.expandvars(r"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe")
-PKG = "com.android.gl2jni"
+PKG = "com.tacoboy"
 PREFS = "shared_prefs/tacoboy_prefs.xml"
 HERE = os.path.dirname(os.path.abspath(__file__))
 

@@ -5,6 +5,114 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-10 (applicationId is now com.tacoboy)
+
+**`com.android.gl2jni` is gone.** The app had shipped under the applicationId of the
+LibretroDroid sample it was built from -- the build script's own comment called it a
+placeholder to be set "before sharing a build", and with the repository now published
+that moment had arrived. It is `com.tacoboy` from here.
+
+**This is not a rename.** Android treats a changed applicationId as a different app, so
+the build installs alongside the old one rather than over it, with an empty `filesDir`.
+Everything keyed to the old ID is orphaned: save states (`filesDir/savestates/`), imported
+BIOS files including the PS1 one, controller presets, `tacoboy_prefs` in full (settings
+and the RetroAchievements API key), and the SAF grant on the ROM folder, which is issued
+per package and must be given again. Box art and the ROM library cache regenerate on their
+own. Done now, while the only install anywhere is one personal test device; after
+distribution it would cost every user the same loss.
+
+Migrating rather than starting over, on a debuggable build:
+
+```
+adb shell "run-as com.android.gl2jni tar -cf - -C /data/data/com.android.gl2jni files shared_prefs" > tacoboy-data.tar
+adb shell "run-as com.tacoboy tar -xf - -C /data/data/com.tacoboy" < tacoboy-data.tar
+```
+
+Take the backup before uninstalling the old app; `run-as` cannot reach data that no longer
+exists.
+
+**`tools-profile.py` updated** -- its `PKG` constant drove every `adb` call in the
+profiler, so it would have silently profiled a package that no longer exists.
+
+**The namespace was deliberately left alone.** It is still `com.android.libretrodroid`,
+which is what `R` and `BuildConfig` are generated into, and ten files import
+`com.android.libretrodroid.R`. That is a separate change with a real diff, and bundling it
+into an applicationId fix would have made a one-line change into an eleven-file one.
+Nothing about the two has to match.
+
+**The `merged_native_libs` trap did not fire this time** -- the note at the end of the
+2026-08-24 signing entry warns that ABI or applicationId changes leave stale intermediates
+that fail packaging with no useful message. Packaging succeeded without clearing anything.
+Verified anyway rather than assumed: `aapt2 dump packagename` reports `com.tacoboy`, and
+all seven cores plus `liblibretrodroid` and the zstd JNI library are present in the APK.
+
+## 2026-09-10 (Windows reinstall: the signing key was lost; environment rebuilt)
+
+**The release keystore no longer exists.** A corrupted bootloader forced a Windows
+reinstall, and the key lived at `C:/Users/dcrot/.android-keystores/tacoboy-release.jks` --
+inside the user profile, which the reinstall destroyed. No copy existed on any drive; the
+whole machine was searched. **The path recorded in the 2026-08-24 entry above is dead.**
+
+**A new key was generated** at `F:/Keys/tacoboy-release.jks` -- deliberately on a non-OS
+drive, so that reinstalling Windows on C: cannot take it a second time. Same identity
+(`CN=TacoBoy`), 4096-bit RSA, SHA384withRSA, PKCS12 rather than the proprietary JKS
+format. The dead key's passwords are kept at `F:/Keys/OLD-keystore.properties.DEAD-KEY-LOST`
+in case that `.jks` ever resurfaces from a backup.
+
+**What this cost:** nothing, because TacoBoy is unreleased and installed on one personal
+device. What it *would* have cost after distribution is every user uninstalling and losing
+their saves -- v3 signing lineage cannot help, because rotation requires the old key. The
+practice from here is a copy to cloud storage at the end of every session.
+
+**Nothing else was lost.** All 1820 tracked files were verified byte-identical to `HEAD` by
+re-hashing their contents rather than trusting size and timestamp, which a restore
+preserves even when the bytes are wrong. `git fsck` clean. The cores and `core-backups/`
+came through intact.
+
+**The build environment was rebuilt from nothing**, and the setup section of the new root
+README is written from it. Two findings worth keeping: Gradle 8.10.2 will not run on the
+JDK 24+ that a current Adoptium install provides, so the daemon is pinned to JDK 21 via
+`org.gradle.java.home` in `~/.gradle/gradle.properties` -- user-level, because the path is
+machine-specific and would break any other clone. And Android Studio's setup wizard
+installs only the newest SDK (API 37, build-tools 36), which is not what this project
+pins; AGP fetches the NDK, CMake 3.22.1 and API 33/34 itself on the first build.
+
+## 2026-09-10 (644 MB of dead weight purged; the build gets enough heap)
+
+**A 644 MB heap dump was committed to the repository** -- `java_pid44204.hprof`, added by
+"Drop dead weight inherited from the LibretroDroid sample", which is precisely the commit
+that removed dead weight. Purged from history with `filter-branch`, taking `.git` from
+229 MB to 48 MB. Every other file was verified byte-identical afterwards and all eight
+commit messages preserved; the four commits from that one onward have new SHAs, and
+nothing referenced them. Safe only because the repository had never been pushed anywhere.
+
+**The dump existed because packaging runs out of memory.** `:app:packageDebug` has died of
+an `OutOfMemoryError` on two machines now -- 2026-08-24 and again on 2026-09-10 -- each
+time writing ~600 MB next to the build. `gradle.properties` set no heap limit at all.
+It is now `-Xmx4096m` with heap dumps disabled, in the project file rather than the user
+one because it is a property of this build and anyone who clones needs it. `*.hprof` is
+ignored so a third one cannot be committed.
+
+## 2026-09-10 (published to GitHub, privately)
+
+**The project is now at `SirBerusX3/TacoBoy`**, private for the time being. Checked before
+pushing, because history is permanent and a private repository can always be made public:
+`keystore.properties`, `local.properties` and any `.jks` have never been committed in any
+commit on any branch, and no credential is hardcoded in source -- the RetroAchievements API
+key is user-supplied at runtime and `KEY_RA_SESSION_TOKEN` is a preferences key name, not a
+value.
+
+**A root README was added.** There had been none, so GitHub showed a bare file listing, and
+the only README in the tree was upstream's -- opening "LibretroDroid is a simple C++
+LibRetro frontend library" with no mention of TacoBoy. A GPL-3 derivative presenting itself
+as an unlabelled copy of someone else's project is the wrong first impression to leave.
+
+**Upstream has still not moved.** Fetched and checked: master is `8835c30` (2026-05-24),
+unchanged since three months before this project began. Worth recording that "ahead" is not
+measurable here -- the module came from a ZIP rather than a clone, so there is no common
+ancestor and `git merge-base` against upstream returns nothing. A count of commits
+"ahead" will look like 269 and mean nothing; it is just the whole of upstream's history.
+
 ## 2026-08-24 (release signing — and the first release build ever run)
 
 **The release APK was unsigned, and an unsigned APK cannot be installed by anyone.** That was
