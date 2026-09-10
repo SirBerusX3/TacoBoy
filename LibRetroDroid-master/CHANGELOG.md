@@ -5,6 +5,52 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-10 (Handy rebuilt from source: first of the six)
+
+**Handy now passes all three 16 KB checks**, rebuilt from upstream source rather than taken
+from the buildbot. It was the pilot for the six misaligned cores -- the smallest and simplest
+build -- to prove the method before spending it on the rest.
+
+| | buildbot Handy | rebuilt |
+|---|---|---|
+| RELRO end | `0x65000`, +0x1000 past 16 KB | `0x64000`, aligned |
+| `retro_*` exports | 46 | the identical 46 |
+| `tools-check-16kb.sh`, in the APK | FAIL | ok |
+
+**The recipe**, so this core can be regenerated from source rather than only replaced:
+
+```
+git clone https://github.com/libretro/libretro-handy      # built at bc55d46, 2026-04-20
+cd libretro-handy/jni
+ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk NDK_APPLICATION_MK=Application.mk     APP_ABI=arm64-v8a APP_PLATFORM=android-21     "APP_LDFLAGS=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
+# libs/arm64-v8a/libretro.so  ->  app/src/main/jniLibs/arm64-v8a/handy_libretro_android.so
+```
+
+NDK 26.1.10909125. It has to be run from *inside* `jni/`: libretro's Android makefiles build
+source paths from `$(LOCAL_PATH)/..`, and invoked from the core's root that resolves to
+`jni/jni/../lynx/...` and fails. `APP_PLATFORM=android-21` matches `minSdkVersion`.
+
+Upstream's `Android.mk` passes no page-size flags at all. The buildbot's cores have 16 KB
+`p_align` and 4 KB RELRO, which is what `max-page-size` without `common-page-size`
+produces, so it evidently supplies the first flag only -- whether explicitly or through a
+newer NDK's default, the effect is the same half-fix.
+
+**Tested on hardware, not only gated.** Alignment proves a library will map on 16 KB; it
+says nothing about whether the core was built correctly. Both Lynx formats were played on
+the SM-S938B: Critter Championship (a headered `.lnx`, which also re-exercises the hashing
+fix) and California Games (a headerless `.lyx`). Both ran normally. The log shows the core
+loading each, nothing in the crash buffer, and two entries that look like errors and are
+not: "BIOS file missing", expected because the Lynx boot ROM is optional, and "Invalid cart
+(no header?) -- Guessing a ROM layout", which upstream Handy logs for every `.lyx` because
+that format has no header by definition.
+
+The buildbot build is kept as `core-backups/handy_libretro_android.so.pre-relro-2026-09-10.bak`,
+following the convention the 2026-08-24 alignment work set.
+
+**Five remain:** gambatte, mgba, snes9x, genesis_plus_gx, mednafen_psx_hw. Until all six
+are done the app still runs in compat mode on 16 KB devices, so this changes nothing a user
+can see yet -- it only proves the method works.
+
 ## 2026-09-10 (16 KB: the RELRO half was never checked)
 
 **Correction to two earlier entries.** The 2026-08-24 entry says "every native library
