@@ -67,6 +67,36 @@ does not have produce the identical "not recognized" toast.** There is no failur
 can see, which is exactly how this survived from the day Lynx was added. Checking a hash
 against a known-good value catches it; checking whether the UI looks happy never will.
 
+**Confirmed on the device**, not just by hash lookup: all five Lynx games -- the four
+headered ones and Block Out -- now open their achievement lists from "Check
+RetroAchievements", where the four previously refused.
+
+**Then the same check was run across every other system**, on the reasoning that if the
+Lynx rule was wrong for two years nothing guaranteed the rest were right. Hashes were
+computed on the device (`adb shell md5sum`, so no ROM copies left the phone) and looked up
+in each console's public RA hash library:
+
+| System | matched | missed |
+|---|---|---|
+| Game Boy | 12 | 0 |
+| Game Boy Color | 12 | 0 |
+| Game Boy Advance | 12 | 0 |
+| SNES | 10 | 1 |
+| Mega Drive | 12 | 0 |
+| Master System | 12 | 0 |
+| Game Gear | 12 | 0 |
+| SG-1000 | 12 | 0 |
+
+94 of 95. The single miss is `Yoshi's Cookie (USA).sfc`, and it is **not** a hashing
+defect: the file is 524288 bytes, `524288 % 0x2000 == 0`, so it carries no copier header
+and the plain hash is what rcheevos would compute too. Checked both ways to be sure --
+neither the plain hash nor the header-skipped one appears among RA's 5201 SNES hashes, so
+no rule would recognise this file. RA does not have this particular dump.
+
+Our SNES rule was re-read against `rc_hash_snes()` while investigating and is equivalent:
+rcheevos computes `(size / 0x2000) * 0x2000` and strips 512 bytes when the remainder is
+512, which is what `size % 0x2000 == 512` says.
+
 **Four dead strings removed** -- `achievements_list_earned_label`, `rom_scanning`,
 `settings_coming_soon` and `settings_tooltip_close`, defined but referenced from nowhere.
 Safe to delete because nothing in the app resolves strings dynamically; there is no
