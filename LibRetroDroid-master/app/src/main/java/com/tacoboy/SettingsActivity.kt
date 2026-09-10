@@ -38,7 +38,11 @@ private const val SCALE_SLIDER_STEP = 0.05f
  * activity", and a link in a README can be reworded or removed at will, where one baked into
  * an APK is already in every copy that has been handed out.
  */
-private const val SOURCE_URL = ""
+// GPL-3 obliges anyone handed a binary to be able to get its source, and this link is
+// how TacoBoy discharges that. It must point at a repository the recipient can
+// actually reach -- an empty string renders as "Not set yet", which is honest for a
+// build passed to one person and not good enough for a public release.
+private const val SOURCE_URL = "https://github.com/SirBerusX3/TacoBoy"
 
 /**
  * Every third-party component shipped in the APK, with the licence it is actually under --

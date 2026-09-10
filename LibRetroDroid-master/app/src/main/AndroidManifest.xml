@@ -3,9 +3,16 @@
           package="com.android.libretrodroid">
   <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
-  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-  <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
-  <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+  <!-- ROMs are reached through the Storage Access Framework: the user grants one folder
+       and its tree URI is what gets read, which needs no storage permission at all.
+       READ_EXTERNAL_STORAGE and MANAGE_EXTERNAL_STORAGE were declared here until
+       2026-09-10 and never once requested, so nothing has ever depended on them.
+       "All files access" on an emulator downloaded from GitHub reads as malware, and
+       it bought nothing. RECORD_AUDIO went the same way: LibretroDroid's native layer
+       exposes a libretro microphone interface, but no core bundled here uses one and
+       the runtime permission was never requested, so it could not have worked anyway.
+       Any of them can come back the day something actually needs it, along with the
+       runtime request that was always missing. -->
   <uses-permission android:name="android.permission.INTERNET"/>
   <!-- On-screen pad haptics. Normal permission, granted at install; needed because
        controlling intensity means driving the vibrator directly rather than going through

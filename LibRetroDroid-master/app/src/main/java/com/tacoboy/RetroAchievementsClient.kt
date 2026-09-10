@@ -1,6 +1,8 @@
 package com.tacoboy
 
 import android.net.Uri
+import android.os.Build
+import com.android.libretrodroid.BuildConfig
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -45,7 +47,18 @@ object RetroAchievementsClient {
     // Connect API docs are explicit that every dorequest.php request needs a User-Agent
     // identifying the calling frontend — requests without one are rejected. No app version to
     // embed here (this fork's build.gradle has no versionName), so this is a fixed identifier.
-    private const val USER_AGENT = "TacoBoy/1.0 (Android)"
+    /** RetroAchievements identifies clients by user agent, and their rules treat a
+     *  non-unique one as an auto-fail, so this must stay distinctive AND truthful.
+     *  It read "TacoBoy/1.0" until 2026-09-10 while versionName was 0.1.0 -- unique,
+     *  but reporting a version that never existed, which makes anything RA sees from
+     *  the field impossible to tie back to a build. Built from BuildConfig now, so it
+     *  cannot drift from the manifest again.
+     *
+     *  Still missing the active core, which the compliance audit's C1 asks for
+     *  (emulator and core are separate fields in RA's format). That needs the client
+     *  to know which core is loaded and is left for when it does. */
+    private val USER_AGENT =
+        "TacoBoy/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})"
 
     /** `valid` false covers both a network failure and RA actually rejecting the
      *  credentials (401) — verifyCredentials doesn't distinguish them since either

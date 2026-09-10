@@ -7,7 +7,7 @@ Ten systems, one library screen, box art, per-system display shaders, a repositi
 on-screen pad, and RetroAchievements lookup. Everything is local — ROMs come from a
 folder you grant access to, and nothing is uploaded anywhere.
 
-Status: **pre-release** (`versionName 0.1.0`). Built and tested on arm64 devices only.
+Status: **pre-release** (`versionName 0.2.0`). Built and tested on arm64 devices only.
 
 ## Supported systems
 

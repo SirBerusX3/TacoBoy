@@ -5,6 +5,57 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-10 (pre-release pass: GPL source link, dead permissions, honest user agent)
+
+Four things that were survivable while the only install was a personal test device and are
+not survivable once strangers can download a build.
+
+**The GPL source link was empty.** `SOURCE_URL` was `""`, so the About tab's Source Code
+row rendered "Not set yet" -- and the note beside it says, in the app's own words, that
+the licence "requires anyone who receives a copy of the app to be able to get its source
+code". Falling back to "ask whoever gave you this build" is fine for a build handed to one
+person and is not a source offer to the public. Now points at the repository. Verified in
+the built release APK rather than in the source: the URL is present in `classes.dex`.
+
+**Three permissions were declared and never used.** `MANAGE_EXTERNAL_STORAGE`,
+`READ_EXTERNAL_STORAGE` and `RECORD_AUDIO` were all in the manifest; none was ever
+requested anywhere in the app, and ROMs are reached through SAF tree URIs, which need no
+storage permission at all. The libretrodroid module declares no permissions of its own, so
+all three came from us and removing them was a manifest edit rather than a merger fight.
+
+This is not tidiness. "All files access" and microphone on an emulator downloaded from
+GitHub is the exact shape of a thing people assume is malware, and it bought nothing:
+`RECORD_AUDIO` could not have worked regardless, because the runtime request it would have
+needed was never written. LibretroDroid's native layer does expose a libretro microphone
+interface, but no core bundled here uses one. The release APK now requests `INTERNET` and
+`VIBRATE`, plus `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which AndroidX adds itself.
+
+**The user agent lied about the version.** It was the literal `TacoBoy/1.0 (Android)` while
+`versionName` was `0.1.0`. RetroAchievements identifies clients by user agent and treats a
+non-unique one as an auto-fail, so it has to be both distinctive and true; a version that
+never existed makes anything RA sees from the field impossible to tie to a build. Built
+from `BuildConfig.VERSION_NAME` now, so it cannot drift from the manifest again. That meant
+turning `buildConfig` on, off by default since AGP 8, and importing `BuildConfig` from
+`com.android.libretrodroid` -- the namespace package, the same reason `R` is imported from
+there. Still no active core in the string, which the audit's C1 wants; that needs the
+client to know which core is loaded and is left until it does.
+
+**`LICENSE` copied to the repository root**, byte-identical to the module's. GitHub looks
+for it there, and a GPL-3 project whose licence is invisible on its own front page is a bad
+look for exactly the obligation it is meant to advertise.
+
+**Version is now 2 / 0.2.0.** The rule is this file's own: two people running "TacoBoy"
+should never be unable to say which one they have. Builds labelled 0.1.0 already exist on
+a test device, and this one differs in applicationId, permissions, hashing and the source
+link, so it cannot honestly share their number. Kept below 1.0 deliberately -- achievements
+are softcore only, `targetSdk` is 33 and only arm64 ships. 1.0 would claim more than is
+true.
+
+Not blockers, and deliberately not done: the two RetroAchievements hardcore auto-fails
+(section G) do not apply while unlocks are softcore only and disclosed as such, and section
+D means eligibility cannot be applied for yet anyway. `targetSdk 33` is fine for
+distribution outside Play.
+
 ## 2026-09-10 (info text fact-checked; Lynx hashes were wrong)
 
 **The RetroAchievements settings note described an app from several weeks ago.** It
