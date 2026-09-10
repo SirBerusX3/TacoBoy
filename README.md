@@ -3,6 +3,14 @@
 A multi-system emulator frontend for Android, built on
 [LibretroDroid](https://github.com/Swordfish90/LibretroDroid) and libretro cores.
 
+This emulator is specifically made for the GameSir Pocket Taco clamp-on controller.
+As it obscures the lower part of your display, this emulator features an adjustable
+boundary layer that allows you to control the visibility of the app and helps prevent
+the screen from staying on, thereby mitigating screen-burn in, reducing power usage and
+reducing the risk of ghost touches occurring beneath the controller's.
+
+There is now also on-screen controls so that the app can still be used without the Pocket Taco.
+
 Ten systems, one library screen, box art, per-system display shaders, a repositionable
 on-screen pad, and RetroAchievements lookup. Everything is local — ROMs come from a
 folder you grant access to, and nothing is uploaded anywhere.
