@@ -25,8 +25,8 @@ android {
         // Version fields. These are what the About tab reports and what a bug report
         // identifies the build by, so two people running "TacoBoy" should never be unable
         // to say which one they have. Bump before sharing a build.
-        versionCode 2
-        versionName '0.2.0'
+        versionCode 3
+        versionName '0.2.1'
         minSdkVersion 21
         targetSdkVersion 33
 

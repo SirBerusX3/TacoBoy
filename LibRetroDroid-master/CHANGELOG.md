@@ -5,6 +5,27 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-11 (0.2.1: the 16 KB release)
+
+**Version 3 / 0.2.1**, released to carry the 16 KB fix. 0.2.0 went out with an Advanced-tab
+note claiming 16 KB compatibility the app did not have: on a 16 KB device it ran in page-size
+compat mode, with a warning on every launch, beside text saying it was compatible. 0.2.1 makes
+the claim true rather than only rewording it.
+
+**Beetle's OpenGL renderer has now been run** in the rebuilt core, closing the one path the
+entry below records as untested. It works. The texture artefacts documented earlier are still
+there, worse in some games than others -- which is what an unchanged renderer should show,
+since the source commit is the same. They predate this work and are not caused by it.
+
+**Updates over 0.2.0 in place.** Same applicationId, same signing key and a higher
+versionCode, so an existing install keeps its saves, BIOS files, settings and ROM folder
+grant. That is the first time a public TacoBoy has been able to update rather than install
+alongside, and the release notes say so, since 0.2.0's had to warn the opposite.
+
+**Still not run on a 16 KB phone.** The evidence is every library checked as shipped, plus an
+x86_64 16 KB emulator running the arm64 code through translation. The owner's phone may yet
+receive a 16 KB update; when it does, that is the test that settles it.
+
 ## 2026-09-11 (all six cores rebuilt at their shipped commits: 16 KB compatible)
 
 **TacoBoy is 16 KB compatible.** All six cores with a misaligned RELRO segment are rebuilt
