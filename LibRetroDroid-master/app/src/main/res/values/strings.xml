@@ -369,7 +369,7 @@
     <string name="settings_log_level_info">Info</string>
     <string name="settings_log_level_debug">Debug</string>
     <string name="settings_log_level_note">Controls how much detail is captured for Export Logs below. Always applies from the moment it\'s changed — nothing captured before that point can be recovered.</string>
-    <string name="settings_16kb_alignment_note">All native libraries are 16 KB page-aligned, so TacoBoy will load on devices that use 16 KB memory pages — which newer Android hardware is moving to. Verified by inspecting every bundled library, though not yet run on a real 16 KB device, since no such device has been available to test on. Libraries are stored compressed and extracted when the app installs, so only their internal alignment matters.</string>
+    <string name="settings_16kb_alignment_note">Newer Android devices can use 16 KB memory pages instead of 4 KB. On those devices TacoBoy currently runs in Android\'s page-size compatibility mode and shows a warning at launch — it still works. Six of the bundled emulator cores are the cause: they\'re built by a toolchain that aligns them for 16 KB pages only partly. TacoBoy\'s own code and the SwanStation core are fully aligned. Devices with 4 KB pages, which is most of them today, are unaffected.</string>
     <string name="settings_export_logs_button">Export Logs</string>
     <string name="settings_export_logs_empty_toast">No logs captured yet at the current log level</string>
     <string name="settings_export_logs_success_toast">Logs saved</string>

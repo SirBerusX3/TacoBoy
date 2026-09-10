@@ -5,6 +5,69 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-10 (16 KB: the RELRO half was never checked)
+
+**Correction to two earlier entries.** The 2026-08-24 entry says "every native library
+TacoBoy ships is now 16 KB page-aligned", and the fact-check entry below says the alignment
+note was "re-verified against the release APK". Both were true of what was measured and
+false of what matters. On a 16 KB emulator Android refused the app outright:
+
+> This app isn't 16 KB compatible. RELRO alignment check failed. This app will be run using
+> page size compatible mode.
+
+**Only one of the three things the loader requires had ever been tested.** For each LOAD
+segment `p_align` must be a multiple of 16384 and `p_offset` must be congruent to `p_vaddr`
+modulo 16384; and `PT_GNU_RELRO` must *end* on a 16384 boundary, because RELRO is
+write-protected after relocation, and a segment ending mid-page cannot be protected without
+also protecting the writable data after it. `tools-check-16kb.sh` checked `p_align` alone,
+and the re-verification repeated its blind spot rather than testing the loader's rules.
+Measured directly from the ELF program headers:
+
+| library | p_align | offset/vaddr | RELRO end |
+|---|---|---|---|
+| gambatte, genesis_plus_gx, snes9x | ok | ok | +0x2000 past a 16 KB boundary |
+| handy, mgba | ok | ok | +0x1000 |
+| mednafen_psx_hw | ok | ok | +0x3000 |
+| liblibretrodroid, swanstation | ok | ok | aligned |
+| libzstd-jni | ok | ok | no RELRO segment |
+
+Six of the seven prebuilt cores fail. Every remainder is a multiple of 0x1000, which is the
+signature of a RELRO end padded to 4 KB.
+
+**Why: LLD pads the RELRO end to `common-page-size`, not `max-page-size`.** Tested with NDK
+26.1 / LLD 17 across five `.data.rel.ro` sizes: `-z max-page-size=16384` alone left the RELRO
+end misaligned in four of the five; adding `-z common-page-size=16384` aligned all five.
+This library was linked with the first flag only -- **it passed by luck**, a one-in-four
+chance any change to its size could have undone. Both flags are passed now. Its segment
+layout is byte-identical today, so the change costs nothing now and removes the luck.
+
+**Newer cores do not help.** The buildbot nightlies of 2026-09-09/10 have the identical
+defect for the same six, so the cause is the buildbot's toolchain, and replacing the files --
+which is how gambatte and mgba were "fixed" on 2026-08-24 -- cannot fix this. The cores need
+rebuilding from source with both flags.
+
+**`tools-check-16kb.sh` rewritten** to test all three conditions, and to check the libraries
+*as shipped*, extracted from the APK. It previously scanned `jniLibs/`, which holds 7 of the 9
+libraries; `liblibretrodroid.so` is built here and `libzstd-jni` comes from Maven, so it had
+never looked at either. Run against the 0.2.0 release APK it now fails with exactly the six
+cores above and exits 1. A gate that cannot fail is not a gate, and the old one could not.
+
+**External checkers share the old blind spot.** 16kbchecker.com passed all nine libraries on
+ELF alignment -- including the six Android itself rejected. Its two warnings were Play Store
+requirements, not this bug: compressed native libraries, and targetSdk 33. Its advice to set
+`useLegacyPackaging = false` would be actively harmful here: it makes libraries load straight
+from the APK, which *requires* 16 KB zip alignment, and AGP cannot produce that before 8.5.1.
+
+**What users see.** On a 16 KB device running Android 16 or later, TacoBoy works, in page-size
+compat mode, with a warning dialog on every launch. Not a crash. 4 KB devices are unaffected.
+The Advanced tab's note claimed full compatibility and has been corrected to say this.
+
+**A caveat about the emulator that found it.** It was `sdk_gphone16k_x86_64`, running
+TacoBoy's arm64 code through `libndk_translation`. Its dialog also listed `liblibretrodroid`,
+`swanstation` and `libzstd-jni` -- each passes every check -- with "Unknown error". That points
+at the translation layer rather than those libraries, and it means a clean result on an x86_64
+emulator is encouraging, not proof. Only arm64 16 KB hardware or an arm64 16 KB image is.
+
 ## 2026-09-10 (released publicly as v0.2.0)
 
 TacoBoy is public: `SirBerusX3/TacoBoy`, GPL-3.0, with `v0.2.0` tagged and an

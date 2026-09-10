@@ -124,8 +124,22 @@ add_library(libretrodroid SHARED
         ${RCHEEVOS_SOURCES}
 )
 
-# Support 16k pages for Android 15
-target_link_options(libretrodroid PRIVATE "-Wl,-z,max-page-size=16384")
+# 16 KB pages. Two flags, and the second is the one that was missing until 2026-09-10.
+#
+# max-page-size aligns the LOAD segments, which is the check everyone knows about. It does
+# not align the end of PT_GNU_RELRO: LLD pads that to common-page-size, which defaults to
+# 4096. Android write-protects RELRO after relocation, and with 16 KB pages a RELRO segment
+# ending mid-page cannot be protected without also protecting the writable data after it --
+# so the loader rejects the library and runs the whole app in page-size compat mode, with a
+# warning dialog on every launch.
+#
+# Measured with NDK 26.1 / LLD 17 across five .data.rel.ro sizes: max-page-size alone left
+# the RELRO end misaligned in four of the five. This library happened to pass anyway, which
+# is luck rather than correctness -- any change to its size could have tipped it over.
+# common-page-size=16384 aligned all five.
+target_link_options(libretrodroid PRIVATE
+    "-Wl,-z,max-page-size=16384"
+    "-Wl,-z,common-page-size=16384")
 
 # add lib dependencies
 target_link_libraries(libretrodroid
