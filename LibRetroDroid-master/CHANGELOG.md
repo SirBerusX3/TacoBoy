@@ -5,6 +5,54 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-10 (info text fact-checked; Lynx hashes were wrong)
+
+**The RetroAchievements settings note described an app from several weeks ago.** It
+claimed identification worked for "GB, GBC, GBA, and SNES" only, that "PS1 isn't supported
+yet", and that "achievement lists and unlock tracking haven't been built yet". All three
+were false: `Ps1Hasher` implements `rc_hash_psx` end to end, `RomHasher` dispatches on
+`GameSystem` across all ten systems, and `AchievementsActivity` plus `AchievementsSession`
+have been listing achievements and submitting live unlocks for some time. Rewritten to
+describe what ships, keeping the one limitation that is still true -- softcore only,
+because `awardAchievement` still passes `hardcore = 0`.
+
+**Checked, and left alone, because they are still correct:** the Hardcore Mode note (it
+says unlock reporting is unchanged, and it is), the live-tracking note including the
+separate-password detail, and the 16 KB alignment note -- re-verified against the release
+APK, where every one of the nine bundled libraries is 16 KB aligned or better (snes9x is
+64 KB, which satisfies it). All 61 `core_desc_*` strings map one-to-one to live options,
+with none dead and none missing.
+
+**Found while checking which systems identification actually covers: Lynx hashes were
+wrong.** rcheevos' `rc_hash_lynx()` skips a 64-byte header when a file opens with the
+magic; `RomHasher` special-cased only SNES and PS1 and sent everything else through a raw
+MD5. Mapping all ten systems against rcheevos showed nine correct and Lynx the sole gap --
+a headered `.lnx` produced a hash RetroAchievements has never seen, surfacing as the
+ordinary "not recognized" message, which is exactly why it went unnoticed.
+
+Two rcheevos quirks are matched deliberately rather than tidied up, because a hash is
+worthless unless it is identical to RA's:
+
+  - the magic is compared as **five** bytes against the literal `"LYNX"`, taking in its
+    terminating NUL, so a file starting `LYNX!` is not headered
+  - the guard is `> 64`, not `>=`, so a file exactly the size of the header is left alone
+    rather than hashed as zero bytes
+
+The decision is split into a pure `lynxHeaderSize(fileLength, leadingBytes)` with the SAF
+reading kept in a wrapper, matching how `awardAchievementSignature` is arranged, and
+`RomHasherTest` covers both quirks along with short reads. A truncated read counts as "no
+header": fewer bytes than the magic means the magic was never confirmed.
+
+**Four dead strings removed** -- `achievements_list_earned_label`, `rom_scanning`,
+`settings_coming_soon` and `settings_tooltip_close`, defined but referenced from nowhere.
+Safe to delete because nothing in the app resolves strings dynamically; there is no
+`getIdentifier` call anywhere, so a name that does not appear literally is genuinely
+unused. 350 strings down to 346.
+
+**Not done:** the 61 core option descriptions were checked for existence, not for whether
+each still describes what its core actually does. That is a much larger job and wants the
+options in front of a real device.
+
 ## 2026-09-10 (applicationId is now com.tacoboy)
 
 **`com.android.gl2jni` is gone.** The app had shipped under the applicationId of the

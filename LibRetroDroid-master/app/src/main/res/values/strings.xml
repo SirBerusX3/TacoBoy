@@ -45,7 +45,6 @@
     <string name="system_tabs_scroll_left">‹</string>
     <string name="system_tabs_scroll_right">›</string>
     <string name="system_label_ps1">PS1</string>
-    <string name="rom_scanning">Scanning ROM library…</string>
     <string name="menu_button">Menu</string>
     <string name="settings_clear_crash_log_button">Clear Crash History</string>
     <string name="settings_clear_crash_log_empty_toast">No crashes recorded</string>
@@ -177,7 +176,6 @@
     <string name="game_load_failed_needs_bios">Couldn\'t load this game — missing or invalid BIOS file? Use the BIOS button in the library.</string>
     <string name="settings_title">Settings</string>
     <string name="settings_icon_close">✕</string>
-    <string name="settings_tooltip_close">Close settings</string>
     <string name="library_icon_settings">⚙</string>
     <string name="library_tooltip_settings">Settings</string>
     <string name="settings_section_general">General</string>
@@ -196,7 +194,6 @@
     <string name="settings_note_achievements_title">About RetroAchievements</string>
     <string name="settings_note_live_tracking_title">About live tracking</string>
     <string name="settings_note_bindings_title">How to change a binding</string>
-    <string name="settings_coming_soon">More settings coming soon.</string>
     <string name="settings_core_label">%1$s Core</string>
     <string name="settings_core_note">Switching cores can change which save states work for this system\'s games — your SRAM/cart save is unaffected. Takes effect the next time a game is loaded.</string>
     <string name="settings_renderer_label">%1$s Renderer</string>
@@ -327,7 +324,7 @@
     <string name="settings_auto_save_label">Auto-save game data</string>
     <string name="settings_auto_save_note">Restores your in-game save automatically whenever a ROM loads, and keeps it up to date whenever you leave the game (switch ROMs, open the library, or background the app). This is separate from save states — it\'s the same save data the game itself would write to a memory card or cartridge battery. Turn this off only if it causes trouble with a specific game.</string>
     <string name="settings_memory_card_note">PlayStation (PS1) games each get their own ~128KB virtual memory card, separate from every other PS1 game\'s. That\'s plenty of room for a normal playthrough — real PS1 memory cards hold far less and are shared across every game on them — but it isn\'t unlimited, so an especially save-heavy game could still fill it.</string>
-    <string name="settings_achievements_note">Logging in lets TacoBoy identify your GB, GBC, GBA, and SNES games against RetroAchievements\' database — PS1 isn\'t supported yet. This is identification only for now; achievement lists and unlock tracking haven\'t been built yet. Long-press a game in the library and choose \"Check RetroAchievements\" to test whether a specific ROM is recognized.</string>
+    <string name="settings_achievements_note">Logging in lets TacoBoy identify your games against RetroAchievements\' database, PS1 discs included. You can then open any recognised game\'s achievement list and see which ones you\'ve earned. Turn on Live Tracking below to have unlocks submitted automatically as you play — softcore only, as Hardcore Mode doesn\'t yet change how unlocks are reported. Long-press a game in the library and choose \"Check RetroAchievements\" to test whether a specific ROM is recognized.</string>
     <string name="settings_achievements_status_logged_out">Not logged in</string>
     <string name="settings_achievements_status_logged_in">Logged in as %1$s</string>
     <string name="settings_achievements_login_button">Log In…</string>
@@ -366,7 +363,6 @@
     <string name="settings_live_tracking_login_success">Live tracking on for %1$s</string>
     <string name="settings_live_tracking_login_failed">Couldn\'t sign in — check your username and password.</string>
     <string name="settings_live_tracking_logged_out_toast">Live tracking turned off</string>
-    <string name="achievements_list_earned_label">Earned</string>
     <string name="settings_log_level_label">Log level</string>
     <string name="settings_log_level_error">Error</string>
     <string name="settings_log_level_warn">Warn</string>
