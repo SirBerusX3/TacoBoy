@@ -146,10 +146,17 @@ key, only a reinstall for every user.
 ## Cores
 
 The seven `.so` files in `app/src/main/jniLibs/arm64-v8a/` are committed deliberately.
-They are not built from this repository and cannot be regenerated from it, so a clone
-without them cannot produce a working app. `core-backups/` keeps previous builds for the
-same reason — the 2026-08-16 Beetle PSX HW build in particular is not otherwise
-recoverable.
+Gradle does not build them, so a clone without them cannot produce a working app.
+
+Six of them were rebuilt from upstream source on 2026-09-11, each at the exact commit of
+the build it replaced, linked with `-z max-page-size=16384 -z common-page-size=16384` for
+16 KB page support. [CHANGELOG.md](LibRetroDroid-master/CHANGELOG.md) records the commit
+and build command for each, so they can be regenerated rather than only replaced.
+SwanStation is still the libretro buildbot's binary; it was already 16 KB compatible.
+
+`core-backups/` keeps earlier builds that git history cannot supply — the 2026-08-16
+Beetle PSX HW build in particular predates the repository and is not recoverable any
+other way. Anything committed since then can be recovered from history instead.
 
 ## Documentation
 

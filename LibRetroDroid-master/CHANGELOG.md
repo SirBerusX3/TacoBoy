@@ -5,6 +5,121 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-11 (all six cores rebuilt at their shipped commits: 16 KB compatible)
+
+**TacoBoy is 16 KB compatible.** All six cores with a misaligned RELRO segment are rebuilt
+from upstream source, `tools-check-16kb.sh` passes all nine libraries in the release APK,
+and the 16 KB emulator that raised "RELRO alignment check failed" now launches the app with
+no dialog at all. The Advanced tab's note, which described compat mode, now says so.
+
+### The first attempt built the wrong source
+
+Building each core from upstream master looked right and was not. Every rebuild was checked
+against the binary it would replace, and two failed in ways alignment could never reveal:
+
+  - **snes9x lost `snes9x_gfx_hires`.** Master replaced it with `snes9x_hires_blend`, a
+    different option rather than a rename, so TacoBoy's hi-res setting would have silently
+    done nothing. Master also exported 30 more `retro_*` functions than what shipped.
+  - **Beetle would not compile.** Newer libretro-common uses ARM SHA intrinsics that clang 17
+    (NDK 26.1) refuses to inline into a function built without the `sha2` target feature.
+
+Master changes more than linker flags. The fix was to find out what actually shipped: most
+cores embed their git hash in the version string, so it could be read straight out of each
+binary -- `1.60 bd9246d`, `v1.7.4 b7e79b3`, `0.9.44.1-GLES3 d97afa8`, and for mgba
+`0.11-219-e31759b`. Handy, gambatte and mgba had been built at their shipped commits by
+coincidence; snes9x, Genesis Plus GX and Beetle had not. Rebuilt at the right commits, both
+failures disappeared. The shipped snes9x turned out to be from 2019, very likely inherited
+from the LibretroDroid sample, and at `d97afa8` Beetle predates the SHA intrinsics entirely.
+
+### The recipe
+
+| core | upstream | commit | build |
+|---|---|---|---|
+| handy | libretro/libretro-handy | `bc55d46` | `jni/` |
+| gambatte | libretro/gambatte-libretro | `d9d6cd0` | `libgambatte/libretro/jni/` |
+| mgba | libretro/mgba | `e31759b` | CMake |
+| snes9x | libretro/snes9x | `bd9246d` | `libretro/jni/` |
+| genesis_plus_gx | libretro/Genesis-Plus-GX | `b7e79b3` | `libretro/jni/` |
+| mednafen_psx_hw | libretro/beetle-psx-libretro | `d97afa8` | `jni/`, plus `HAVE_HW=1` |
+
+All with NDK 26.1.10909125. Clone with full history and set `git config core.abbrev 7`
+first, so the embedded version string matches what shipped. The five `jni/` builds run
+from *inside* the listed directory:
+
+```
+ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk NDK_APPLICATION_MK=Application.mk     APP_ABI=arm64-v8a APP_PLATFORM=android-21     "APP_LDFLAGS=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
+# libs/arm64-v8a/libretro.so  ->  jniLibs/arm64-v8a/<core>_libretro_android.so
+```
+
+mgba has no Android makefile; libretro builds it with CMake, using the CI's own `CORE_ARGS`:
+
+```
+cmake -S . -B build-android -G Ninja     -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake     -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21 -DCMAKE_BUILD_TYPE=Release     -DLIBMGBA_ONLY=ON -DBUILD_LIBRETRO=ON     "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
+cmake --build build-android --target mgba_libretro
+llvm-strip --strip-unneeded -o libmgba_libretro_android.so build-android/mgba_libretro.so
+```
+
+The strip matters: CMake's Release build leaves symbols in, and unstripped it is 6.3 MB
+against 2.4 MB. The output keeps the `lib` prefix the 2026-08-24 entry explains.
+
+Gambatte's upstream `Android.mk` already passes `-z max-page-size=16384`, and its buildbot
+RELRO was still misaligned: direct confirmation that libretro applied half the fix.
+
+### Verified against the originals, not against expectations
+
+Each rebuild was compared with its predecessor pulled from git history, on four counts:
+
+| core | RELRO | `retro_*` API | source commit | TacoBoy's option keys |
+|---|---|---|---|---|
+| handy | bad -> aligned | identical (46) | `bc55d46` = `bc55d46` | 5/5 |
+| gambatte | bad -> aligned | identical (46) | `d9d6cd0` = `d9d6cd0` | 5/5 |
+| mgba | bad -> aligned | identical (25) | `e31759b` = `e31759b` | 5/5 |
+| snes9x | bad -> aligned | identical (25) | `bd9246d` = `bd9246d` | 6/6 |
+| genesis_plus_gx | bad -> aligned | identical (53) | `b7e79b3` = `b7e79b3` | 8/8 |
+| mednafen_psx_hw | bad -> aligned | identical (55) | `d97afa8` = `d97afa8` | 27/27 |
+
+The option-key column is the one that caught snes9x. `CoreOptions.kt` refers to each option by
+key string, so a key missing from the core means a setting that silently does nothing -- the
+same failure mode as the Lynx hashes: nothing visibly breaks.
+
+Version strings are byte-identical for five of the six. mgba's reads `0.11-10126-e31759b`
+where the buildbot's read `0.11-219-e31759b`. mgba counts every commit in the clone
+(`rev-list --count`), not commits since a tag, so the middle number records whatever clone
+the buildbot used; a clone to depth 219 gives 3030, because of merges. The commit hash, which
+is what identifies the source, matches.
+
+### Tested on hardware
+
+Every system was played on the SM-S938B -- GB, GBC, GBA, SNES, Mega Drive, Master System,
+Game Gear, SG-1000, Lynx and PS1 -- with picture, sound and controls unchanged. Beetle ran
+Army Men: Air Attack, a real-time 3D game, in its **software** renderer, since the OpenGL
+renderer has the dithering and texture artefacts documented earlier. **Beetle's OpenGL path
+has therefore not been run in the rebuilt core.** The risk is low: the source commit is the
+same and the version string, `0.9.44.1-GLES3`, confirms it was compiled with the same GLES3
+renderer.
+
+It was confirmed that the phone ran the new build rather than assumed: the installed APK's
+SHA-256 matched the built one, and the libraries Android extracted and loads from -- this is
+legacy packaging, so it loads its own copies, not the APK's -- carried the new sizes and
+aligned RELRO. `adb install -r` also kills the app, so no old process survived into testing.
+
+### Correction to the 2026-09-10 entry
+
+That entry attributed the emulator's "Unknown error" on `liblibretrodroid`, `swanstation` and
+`libzstd-jni` to the x86_64 translation layer, and called a clean emulator result
+"encouraging, not proof". The first half was wrong: once the six real failures were fixed,
+those three entries disappeared along with the whole dialog, so they were fallout from the
+six rather than an artefact of their own. The emulator result stands as real evidence. What
+it still is not is arm64 16 KB hardware, which no one has run TacoBoy on yet.
+
+### No new copies in core-backups/
+
+The six previous binaries total about 31 MB and are all committed, so git history already
+holds them exactly: `git show 0170c90:LibRetroDroid-master/app/src/main/jniLibs/arm64-v8a/<file>`
+recovers any of them (Handy's is also kept as `*.pre-relro-2026-09-10.bak`). `core-backups/`
+exists for builds that history cannot supply -- the 2026-08-16 Beetle predates the repository
+-- and 31 MB of duplicates would undo some of the 644 MB purge for no gain.
+
 ## 2026-09-10 (Handy rebuilt from source: first of the six)
 
 **Handy now passes all three 16 KB checks**, rebuilt from upstream source rather than taken
