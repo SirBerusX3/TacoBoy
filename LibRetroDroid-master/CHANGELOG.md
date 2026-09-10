@@ -43,6 +43,30 @@ reading kept in a wrapper, matching how `awardAchievementSignature` is arranged,
 `RomHasherTest` covers both quirks along with short reads. A truncated read counts as "no
 header": fewer bytes than the magic means the magic was never confirmed.
 
+**Verified against RetroAchievements' own hash library, not against the app's opinion of
+itself.** `dorequest.php?r=hashlibrary&c=13` returns the 133 Lynx hashes RA knows; it is
+public and unauthenticated, so this needed no account credentials and sent nothing but a
+console ID. Hashing the real files on the device both ways and looking up each result:
+
+| ROM | header | old full-file hash | new hash |
+|---|---|---|---|
+| Critter Championship (Aftermarket) | yes | not in RA's list | gameId 19715 |
+| Timeloop (Aftermarket) | yes | not in RA's list | gameId 27007 |
+| Z.A.P. (Aftermarket) | yes | not in RA's list | gameId 19714 |
+| Running Knight (LynxJam 2023) | yes | not in RA's list | gameId 29053 |
+| Block Out (USA, Europe) | **no** | gameId 11235 | unchanged |
+
+So four Lynx games were not merely hashing differently, they were unrecognisable -- their
+old hashes appear nowhere among the 133. Block Out is the control and matters as much: a
+headerless file that happens to carry the `.lnx` extension, still resolving through the
+plain full-file path. Skipping 64 bytes off every `.lnx` on the strength of its extension
+would have broken it, which is why the magic is read rather than the filename trusted.
+
+Worth noting for the next time hashing is touched: **a wrong hash and a game RA simply
+does not have produce the identical "not recognized" toast.** There is no failure the user
+can see, which is exactly how this survived from the day Lynx was added. Checking a hash
+against a known-good value catches it; checking whether the UI looks happy never will.
+
 **Four dead strings removed** -- `achievements_list_earned_label`, `rom_scanning`,
 `settings_coming_soon` and `settings_tooltip_close`, defined but referenced from nowhere.
 Safe to delete because nothing in the app resolves strings dynamically; there is no
