@@ -56,12 +56,6 @@ TacoBoy is a **derivative of LibretroDroid**, which is Swordfish90's work and th
 this project exists at all. The `libretrodroid` module here is that library, vendored and
 modified; `app/` is TacoBoy and is ours.
 
-The module arrived as a downloaded `master` ZIP rather than a clone, so this repository's
-history has **no common ancestor with upstream's** — `git merge-base` against
-`Swordfish90/LibretroDroid` returns nothing, and "ahead/behind" is therefore not a
-meaningful comparison. The fork point was recovered by content instead: of 85 vendored
-files, 56 are byte-identical to upstream and 29 are ours.
-
 Upstream is a low-velocity project; its master has not moved since `8835c30`
 (2026-05-24), which was already current when TacoBoy started on 2026-08-24. The policy is
 to cherry-pick individual upstream commits with a reason, not to track continuously,
