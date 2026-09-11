@@ -5,6 +5,40 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-11 (diagnostics say when the cores are being translated)
+
+**The 16 KB case has now been observed.** The entry below records `Page size: 16 KB` as
+reached only by arithmetic. Run on the `sdk_gphone16k_x86_64` emulator, the About tab showed:
+
+```
+TacoBoy 0.2.1 (3)
+Android 17 (SDK 37)
+Google sdk_gphone16k_x86_64 (x86_64)
+Page size: 16 KB
+PS1 core: SwanStation
+On-screen pad: off at 100%
+```
+
+**That device line was misleading, and now says so.** `(x86_64)` is `Build.SUPPORTED_ABIS[0]`,
+the *device's* ABI. TacoBoy ships arm64-v8a only, so on that emulator every core was running
+through `libndk_translation`, and nothing in the report showed it. That is the exact confusion
+this project already hit once: the first 16 KB dialog was partly obscured by translation. A
+report from an x86 emulator or Chromebook would have read like native hardware.
+
+The line now reads `(x86_64, running arm64-v8a translated)` when the app's ABI differs from
+the device's, and is unchanged on a real arm64 phone -- which is what makes a genuine 16 KB
+arm64 report, the one that settles the question, distinguishable at a glance. The app's ABI
+comes from `ApplicationInfo.nativeLibraryDir`, whose last component is the instruction-set
+directory the package manager installed the libraries for (`arm64`); the field that states it
+outright, `primaryCpuAbi`, is hidden API.
+
+**Tested as pure functions rather than trusted from the About tab**, following the pattern of
+`lynxHeaderSize` and `awardAchievementSignature`. Both lines are wrong in ways the only phone to
+hand cannot show: it is 4 KB, and a failed ABI lookup falls back to the device ABI, which on an
+arm64 phone is also the app's -- so a broken lookup and a working one look identical there.
+`DiagnosticsTest` covers 4, 16 and 64 KB, sysconf's failure value, directories that map and
+ones that do not, and the translated case itself. 31 tests pass.
+
 ## 2026-09-11 (page size in Copy Diagnostics)
 
 **Diagnostics now report the memory page size**, as `Page size: 4 KB` or `Page size: 16 KB`,

@@ -1346,8 +1346,7 @@ class SettingsActivity : AppCompatActivity() {
             append("Android ").append(android.os.Build.VERSION.RELEASE)
                 .append(" (SDK ").append(android.os.Build.VERSION.SDK_INT).append(")\n")
             append(android.os.Build.MANUFACTURER).append(' ').append(android.os.Build.MODEL)
-                .append(" (").append(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "?")
-                .append(")\n")
+                .append(" (").append(abiLabel()).append(")\n")
             append("Page size: ").append(pageSizeLabel()).append('\n')
             append("PS1 core: ").append(GameSystem.PS1.selectedCore(this@SettingsActivity).displayName)
                 .append('\n')
@@ -1358,6 +1357,23 @@ class SettingsActivity : AppCompatActivity() {
                 .append('%')
         }
     }
+
+    /** The device's ABI, plus the ABI TacoBoy's native code actually runs as when the two differ.
+     *
+     *  Build.SUPPORTED_ABIS[0] is the device's own ABI, not the app's. TacoBoy ships arm64-v8a only,
+     *  so on an x86_64 emulator or Chromebook it runs through an ARM-to-x86 translation layer
+     *  (libndk_translation) while the device line would still have said plainly "x86_64" -- a
+     *  report from such a machine would read like native hardware. That distinction mattered: an
+     *  x86_64 16 KB emulator's dialog was partly confused by translation. So a mismatch is spelled
+     *  out, and on a real arm64 phone nothing changes.
+     *
+     *  The app's ABI comes from nativeLibraryDir, whose last component is the instruction-set
+     *  directory the package manager installed the libraries for ("arm64" -> arm64-v8a). The
+     *  field that states it directly, ApplicationInfo.primaryCpuAbi, is hidden API. */
+    private fun abiLabel(): String = diagnosticsAbiLabel(
+        device = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "?",
+        app = applicationInfo.nativeLibraryDir?.let { nativeAbiForLibDir(java.io.File(it).name) },
+    )
 
     /** The memory page size this process runs with. It is the one number that makes a report
      *  from a 16 KB device checkable: 16 KB support cannot be confirmed from a description of
@@ -1376,11 +1392,7 @@ class SettingsActivity : AppCompatActivity() {
             TacoBoyLog.e("SettingsActivity", "Could not read page size", e)
             -1L
         }
-        return when {
-            bytes <= 0 -> "unknown"
-            bytes % 1024 == 0L -> "${bytes / 1024} KB"
-            else -> "$bytes bytes"
-        }
+        return diagnosticsPageSizeLabel(bytes)
     }
 
     private fun shaderLabel(choice: ShaderChoice): String = when (choice) {
@@ -2142,3 +2154,26 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 }
+
+// The decisions behind two diagnostics lines, kept free of Context so they can be tested
+// directly -- on a 4 KB arm64 phone both lines look right even when the logic is wrong, since a
+// failed ABI lookup falls back to the device ABI and only 4 KB is ever measured there.
+
+internal fun diagnosticsPageSizeLabel(bytes: Long): String = when {
+    bytes <= 0 -> "unknown"
+    bytes % 1024 == 0L -> "${bytes / 1024} KB"
+    else -> "$bytes bytes"
+}
+
+/** The instruction-set directory name the package manager installs native libraries under,
+ *  as found at the end of ApplicationInfo.nativeLibraryDir, mapped back to an ABI name. */
+internal fun nativeAbiForLibDir(dirName: String): String? = when (dirName) {
+    "arm64" -> "arm64-v8a"
+    "arm" -> "armeabi-v7a"
+    "x86_64" -> "x86_64"
+    "x86" -> "x86"
+    else -> null
+}
+
+internal fun diagnosticsAbiLabel(device: String, app: String?): String =
+    if (app == null || app == device) device else "$device, running $app translated"
