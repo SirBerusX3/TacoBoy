@@ -70,7 +70,7 @@
     <string name="about_licences_label">Open Source Licences</string>
     <string name="about_licences_note">TacoBoy is built almost entirely from other people’s work. Every emulator core below is a separate project with its own licence and its own authors, listed so credit lands where it belongs and so anyone redistributing this build knows what they are agreeing to. Two cores are not free for commercial use — marked below — which is one reason this app is not sold.</string>
     <string name="about_diagnostics_label">Diagnostics</string>
-    <string name="about_diagnostics_note">A summary of this device and build. If you are reporting a problem, copy this and include it — it answers the first several questions anyone would ask. It contains no personal information: device model, Android version, app build, and which emulator cores are selected.</string>
+    <string name="about_diagnostics_note">A summary of this device and build. If you are reporting a problem, copy this and include it — it answers the first several questions anyone would ask. It contains no personal information: device model, Android version, memory page size, app build, which emulator cores are selected, and the on-screen pad setting. If your device uses 16 KB memory pages, a copy of this is especially useful to send, even if everything works.</string>
     <string name="about_copy_button">Copy Diagnostics</string>
     <string name="about_copied_toast">Diagnostics copied</string>
     <string name="about_link_unset">Not set yet</string>

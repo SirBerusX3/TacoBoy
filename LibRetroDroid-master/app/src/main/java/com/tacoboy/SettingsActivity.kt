@@ -1348,6 +1348,7 @@ class SettingsActivity : AppCompatActivity() {
             append(android.os.Build.MANUFACTURER).append(' ').append(android.os.Build.MODEL)
                 .append(" (").append(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "?")
                 .append(")\n")
+            append("Page size: ").append(pageSizeLabel()).append('\n')
             append("PS1 core: ").append(GameSystem.PS1.selectedCore(this@SettingsActivity).displayName)
                 .append('\n')
             append("On-screen pad: ")
@@ -1355,6 +1356,30 @@ class SettingsActivity : AppCompatActivity() {
                 .append(" at ")
                 .append(Math.round(TacoBoyPrefs.getTouchControlScale(this@SettingsActivity) * 100))
                 .append('%')
+        }
+    }
+
+    /** The memory page size this process runs with. It is the one number that makes a report
+     *  from a 16 KB device checkable: 16 KB support cannot be confirmed from a description of
+     *  how the app behaved, and most people have no ADB to run `getconf PAGESIZE` with. Copy
+     *  Diagnostics now carries it, so "works on my phone" arrives with the fact that decides
+     *  whether it proves anything.
+     *
+     *  From 0.2.1 every bundled library is 16 KB aligned, so Android never runs TacoBoy in
+     *  page-size compat mode and this is the device's real page size. Whether compat mode
+     *  would alter the answer for an older build is not established here -- the version line
+     *  says which case a report is. */
+    private fun pageSizeLabel(): String {
+        val bytes = try {
+            android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE)
+        } catch (e: Exception) {
+            TacoBoyLog.e("SettingsActivity", "Could not read page size", e)
+            -1L
+        }
+        return when {
+            bytes <= 0 -> "unknown"
+            bytes % 1024 == 0L -> "${bytes / 1024} KB"
+            else -> "$bytes bytes"
         }
     }
 

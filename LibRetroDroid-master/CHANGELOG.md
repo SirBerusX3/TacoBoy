@@ -5,6 +5,29 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-11 (page size in Copy Diagnostics)
+
+**Diagnostics now report the memory page size**, as `Page size: 4 KB` or `Page size: 16 KB`,
+read from `Os.sysconf(_SC_PAGESIZE)`, which is available from API 21 and so across the whole
+`minSdk` range.
+
+The 0.2.1 release notes ask anyone with a 16 KB device for a report, and without this the
+report is only as good as its author's description. "Works on my phone" proves nothing about
+16 KB support unless the phone is known to use 16 KB pages, and most people have no ADB to
+run `getconf PAGESIZE`. With the page size in *Copy Diagnostics*, the one fact that decides
+whether a report counts comes with it by default. The About note beside the block now says so
+directly, asking 16 KB users to send a copy even if everything works.
+
+That note enumerates what the block holds, and it was already slightly wrong: it never
+mentioned the on-screen pad line. It now lists all six lines, since a list of contents goes
+stale the moment the contents change.
+
+Seen rendering on the SM-S938B as `Page size: 4 KB`, matching `getconf PAGESIZE` of 4096. The
+16 KB case is `16384 / 1024` through the same arithmetic but has not been observed on a device.
+From 0.2.1 no build of TacoBoy runs in page-size compat mode, so the value is the device's real
+page size; whether compat mode would change it for an older build is not established, which
+is part of why the version line sits above it.
+
 ## 2026-09-11 (0.2.1: the 16 KB release)
 
 **Version 3 / 0.2.1**, released to carry the 16 KB fix. 0.2.0 went out with an Advanced-tab
