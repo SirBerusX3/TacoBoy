@@ -23,6 +23,17 @@ into Kotlin by name cannot be renamed away. SHA-256 `a10d1cf3495535990571f7f45bf
 one game on each of the twelve systems started with no fatal signal or load failure, and Final
 Fantasy VII loaded all three discs and swapped to Disc 2 and back with the core reporting each.
 
+**Published** as the GitHub release "TacoBoy 0.3.0", with `app-release.apk` attached, after the user
+approved the release notes. `main` was pushed and then `v0.3.0` by name, never `--tags`, and the
+remote was checked afterwards to hold only TacoBoy's own three tags (v0.2.0, v0.2.1, v0.3.0), none of
+upstream's. Verified from outside, the way a stranger gets it: the asset downloaded unauthenticated
+with HTTP 200 at 12,536,021 bytes, and its SHA-256 matched the one printed in the release notes
+(`a10d1cf3…`), so the verification instructions are true for the file people actually receive.
+The notes lead with upgrading in place from 0.2.1 and state the two layout requirements that would
+otherwise become confused issues: PS1 and Sega CD discs in separate folders, and a multi-disc game's
+`.m3u` beside its discs. A draft "fixes" line was dropped before publishing, because the problems it
+described only ever existed during this update's own development, never in a release.
+
 ## 2026-09-14 (multi-disc games: playlists and Change Disc — roadmap 5.7)
 
 **Multi-disc PS1 and Sega CD games work**, on all three disc cores. Each of the user's is a folder
