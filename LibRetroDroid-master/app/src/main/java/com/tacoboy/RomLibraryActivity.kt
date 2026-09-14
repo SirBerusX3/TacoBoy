@@ -12,7 +12,6 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -59,10 +58,7 @@ class RomLibraryActivity : AppCompatActivity() {
     private lateinit var searchButton: View
     private lateinit var searchRow: View
     private lateinit var searchInput: EditText
-    private lateinit var systemTabs: Map<GameSystem, TextView>
-    private lateinit var systemTabsScroll: HorizontalScrollView
-    private lateinit var tabScrollLeft: View
-    private lateinit var tabScrollRight: View
+    private lateinit var systemPickerButton: TextView
     private lateinit var biosButton: TextView
 
     private lateinit var currentSystem: GameSystem
@@ -135,38 +131,8 @@ class RomLibraryActivity : AppCompatActivity() {
         searchButton = findViewById(R.id.search_button)
         searchRow = findViewById(R.id.search_row)
         searchInput = findViewById(R.id.search_input)
-        systemTabs = mapOf(
-            GameSystem.GBA to findViewById(R.id.tab_gba),
-            GameSystem.GAME_BOY to findViewById(R.id.tab_gb),
-            GameSystem.GAME_BOY_COLOR to findViewById(R.id.tab_gbc),
-            GameSystem.SNES to findViewById(R.id.tab_snes),
-            GameSystem.LYNX to findViewById(R.id.tab_lynx),
-            GameSystem.GENESIS to findViewById(R.id.tab_genesis),
-            GameSystem.MASTER_SYSTEM to findViewById(R.id.tab_master_system),
-            GameSystem.GAME_GEAR to findViewById(R.id.tab_game_gear),
-            GameSystem.SG_1000 to findViewById(R.id.tab_sg1000),
-            GameSystem.PS1 to findViewById(R.id.tab_ps1),
-        )
-        systemTabs.forEach { (system, tab) -> tab.setOnClickListener { selectSystem(system) } }
-
-        systemTabsScroll = findViewById(R.id.system_tabs_scroll)
-        tabScrollLeft = findViewById(R.id.tab_scroll_left)
-        tabScrollRight = findViewById(R.id.tab_scroll_right)
-        // Paging by most of a width rather than all of it keeps a tab visible across the jump,
-        // so it never looks like the row teleported somewhere unrelated.
-        tabScrollLeft.setOnClickListener {
-            systemTabsScroll.smoothScrollBy(-(systemTabsScroll.width * 3 / 4), 0)
-        }
-        tabScrollRight.setOnClickListener {
-            systemTabsScroll.smoothScrollBy(systemTabsScroll.width * 3 / 4, 0)
-        }
-        systemTabsScroll.viewTreeObserver.addOnScrollChangedListener { updateTabScrollHints() }
-        // Layout rather than a single post: before the row is measured canScrollHorizontally
-        // is still false, so a one-shot check can leave the chevron hidden on a row that does
-        // in fact scroll.
-        systemTabsScroll.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            updateTabScrollHints()
-        }
+        systemPickerButton = findViewById(R.id.system_picker_button)
+        systemPickerButton.setOnClickListener { showSystemPicker() }
         biosButton = findViewById(R.id.import_bios_button)
 
         BoundaryController(
@@ -247,7 +213,7 @@ class RomLibraryActivity : AppCompatActivity() {
 
         currentSystem = system
         TacoBoyPrefs.setLastSystem(this, system)
-        updateTabHighlight()
+        systemPickerButton.text = getString(R.string.system_picker_button, getString(system.nameRes))
         biosButton.visibility = if (system.needsBios) View.VISIBLE else View.GONE
         if (system.needsBios) updateBiosButtonLabel()
 
@@ -256,7 +222,7 @@ class RomLibraryActivity : AppCompatActivity() {
         if (folder == null) {
             roms = emptyList()
             loadingIndicator.visibility = View.GONE
-            emptyState.text = getString(R.string.rom_picker_no_folder, system.shortLabel)
+            emptyState.text = getString(R.string.rom_picker_no_folder, getString(system.nameRes))
             renderRoms()
         } else {
             loadRoms(forceRescan = false)
@@ -446,31 +412,48 @@ class RomLibraryActivity : AppCompatActivity() {
         return outValue.resourceId
     }
 
-    private fun updateTabHighlight() {
-        systemTabs.forEach { (system, tab) ->
-            val selected = system == currentSystem
-            tab.setBackgroundResource(if (selected) R.drawable.tab_selected_bg else 0)
-            tab.setTextColor(if (selected) 0xFFFFFFFF.toInt() else 0x88FFFFFF.toInt())
-        }
-        // The row no longer fits on screen, so the selected system can be scrolled out of
-        // sight -- most obviously on the first frame after reopening the library on a system
-        // near the end. Centre it instead of leaving the user to hunt for it.
-        systemTabs[currentSystem]?.let { tab ->
-            systemTabsScroll.post {
-                val target = tab.left - (systemTabsScroll.width - tab.width) / 2
-                systemTabsScroll.smoothScrollTo(target.coerceAtLeast(0), 0)
-                updateTabScrollHints()
+    /**
+     * Every system, in GameSystem.PICKER_ORDER, with how many games each has so the list says
+     * where the games are: the count visible in the library (hidden games excluded), "No folder"
+     * for a system never set up, or "Not scanned yet" for one whose folder has no scan cached.
+     * Counts come from RomLibraryCache, not a rescan, so opening the list never walks a folder.
+     */
+    private fun showSystemPicker() {
+        lifecycleScope.launch {
+            val hidden = TacoBoyPrefs.getHiddenRoms(this@RomLibraryActivity)
+            val details = withContext(Dispatchers.IO) {
+                GameSystem.PICKER_ORDER.map { system ->
+                    val folder = TacoBoyPrefs.getRomFolderUri(this@RomLibraryActivity, system)?.let(Uri::parse)
+                    when {
+                        folder == null -> getString(R.string.system_picker_no_folder)
+                        else -> RomLibraryCache.load(this@RomLibraryActivity, system, folder)
+                            ?.count { !hidden.contains(it.uri.toString()) }
+                            ?.let { resources.getQuantityString(R.plurals.system_picker_games, it, it) }
+                            ?: getString(R.string.system_picker_not_scanned)
+                    }
+                }
             }
-        }
-    }
+            val items = GameSystem.PICKER_ORDER.mapIndexed { i, system ->
+                android.text.SpannableStringBuilder(getString(system.nameRes)).apply {
+                    append("   ")
+                    val start = length
+                    append(details[i])
+                    setSpan(android.text.style.ForegroundColorSpan(0x88FFFFFF.toInt()), start, length, 0)
+                    setSpan(android.text.style.RelativeSizeSpan(0.85f), start, length, 0)
+                }
+            }.toTypedArray<CharSequence>()
 
-    /** Shows each chevron only when there is actually something further that way. Kept
-     *  INVISIBLE rather than GONE so the row doesn't shift sideways as they come and go. */
-    private fun updateTabScrollHints() {
-        tabScrollLeft.visibility =
-            if (systemTabsScroll.canScrollHorizontally(-1)) View.VISIBLE else View.INVISIBLE
-        tabScrollRight.visibility =
-            if (systemTabsScroll.canScrollHorizontally(1)) View.VISIBLE else View.INVISIBLE
+            val dialog = AlertDialog.Builder(this@RomLibraryActivity)
+                .setTitle(R.string.system_picker_title)
+                .setSingleChoiceItems(items, GameSystem.PICKER_ORDER.indexOf(currentSystem)) { dialog, which ->
+                    dialog.dismiss()
+                    val picked = GameSystem.PICKER_ORDER[which]
+                    if (picked != currentSystem) selectSystem(picked)
+                }
+                .show()
+            // Same as every other dialog here: keep it above the clamp boundary.
+            dialog.window?.setGravity(Gravity.TOP)
+        }
     }
 
     private fun toggleViewMode() {

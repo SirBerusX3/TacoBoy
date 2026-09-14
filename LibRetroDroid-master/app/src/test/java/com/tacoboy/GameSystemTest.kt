@@ -15,4 +15,12 @@ class GameSystemTest {
         assertEquals(6, GameSystem.GAME_BOY_COLOR.raConsoleId)
         assertEquals(12, GameSystem.PS1.raConsoleId)
     }
+
+    /** The library's only way to switch system is the picker, so a system missing from its
+     *  order would be unreachable, and one listed twice would show twice. */
+    @Test
+    fun `picker lists every system exactly once`() {
+        assertEquals(GameSystem.entries.toSet(), GameSystem.PICKER_ORDER.toSet())
+        assertEquals(GameSystem.entries.size, GameSystem.PICKER_ORDER.size)
+    }
 }

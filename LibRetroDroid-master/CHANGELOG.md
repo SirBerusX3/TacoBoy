@@ -5,6 +5,51 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (system picker replaces the library's tab row — roadmap 5.3)
+
+**The library switches system through one button now**, naming the current system ("PlayStation
+▾"). Tapping it opens a list of every system, grouped by maker and in release order within each,
+with how many games each has: "Game Boy Advance 441 games". A system with no folder says "No
+folder", and one whose folder has no cached scan says "Not scanned yet". Counts come from
+`RomLibraryCache` with hidden games excluded, so they match the library and opening the list
+never walks a folder.
+
+**Roadmap 5.3 was written on a stale premise, and was corrected.** It quoted an entry saying the
+tab row "buys room for one or two more systems at most", and called for a redesign before NES
+and Sega CD. But the 2026-08-23 entry had already made that row scroll, so twelve tabs would have
+fitted. What remained true was that only about seven showed at once on the SM-S938B, so most
+switches meant scrolling to find a system first, and each new system made that worse. Given the
+scrolling row, a "hide systems with no folder" row, and grouping by maker as alternatives, the
+user chose the picker: it scales to any number of systems and has room for full names and counts.
+
+**What it replaced:** ten tab views, the scroll view and its chevrons, `updateTabHighlight`'s
+re-centring and `updateTabScrollHints`, and the ten `system_label_*` strings, which only the
+tabs used. The chevron strings stay, since Settings uses them.
+
+**New systems cannot be left out of it.** Each system's name is a `when` over the enum, so one
+added without a name does not compile. The picker's order, `GameSystem.PICKER_ORDER`, is a list,
+and a new `GameSystemTest` checks it holds every system exactly once. The library's empty
+state also uses the full name now: "No folder set for Master System yet".
+
+**Verified on the SM-S938B:** the button shows the current system; the picker lists all ten with
+real counts (254 Game Boy games through 209 PlayStation), above the clamp, with the current
+system checked; picking PlayStation from Game Boy Color switched the library and the button;
+Back closes it with nothing changed. Four cold-start repetitions of opening the library and then
+the picker all behaved correctly.
+
+On the very first run the picker closed on Game Boy Color with no tap sent by the test. That was
+the user picking the phone up, not a fault: it did not recur in four repetitions of the same
+sequence. 61 tests pass.
+
+**The button then moved into the icon row, at the user's request.** On its own row it left the
+right of the ☰ ⇅ 🔍 row as a large empty black area, and cost a whole row of height on a screen
+that only has the space above the clamp. It now sits in that row, centred in the space beside
+the icons, and the game grid starts 137 px higher (576 against 713). Centred beside the icons
+rather than on the whole screen: "Mega Drive / Genesis ▾" is nearly twice the width of
+"Game Boy ▾", and centred on the screen it would reach into the search icon. Measured on device
+it spans 631–1304 px against the search icon's right edge at 465; `constrainedWidth` with an
+ellipsis keeps any longer future name inside the space. Checked in screenshots with both names.
+
 ## 2026-09-14 (measured progress and challenge indicators — roadmap 6.2.9)
 
 **Achievements with a counter now show it, and achievements in a challenge say so**, during

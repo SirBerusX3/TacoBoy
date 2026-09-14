@@ -12,7 +12,7 @@ what is still to do.
 | 2 – ROM and core management | v0.2 | Done, except NES (carried into Phase 5) |
 | 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
 | 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
-| **5 – Finish what's open** | **v0.3** | Not started |
+| **5 – Finish what's open** | **v0.3** | Started: 5.3 done |
 | **6 – Achievements done properly** | **v0.4** | 6.1 and 6.2 done; 6.3 not started |
 | **7 – Reach** | **v1.0** | Not started |
 
@@ -101,14 +101,15 @@ save states and box art; RetroAchievements identifies it.
 **Verification:** a `.chd` and a `.cue`/`.bin` game both boot; a missing BIOS is refused
 cleanly, not a black screen.
 
-### 5.3 Library tabs that scale
-- The tab row has been tightened repeatedly and "buys room for one or two more systems at
-  most". NES and Sega CD make twelve. Redesign before adding them, not after.
-- Options to weigh: a system dropdown, a scrolling chip row, or hiding systems with no ROM
-  folder set.
-
-**Verification:** twelve systems usable on the SM-S938B and on a narrower phone, with no
-wrapped or clipped labels.
+### 5.3 Library system switching — done 2026-09-14
+- This item's premise was out of date when written: the tab row had already become a scrolling
+  row on 2026-08-23, so twelve systems would have fitted. The real problem was that only about
+  seven tabs showed at once, so most switches meant scrolling to find a system first.
+- Replaced with a system picker button: one button naming the current system, opening a list of
+  every system, by maker, with how many games each has. It scales to any number of systems, so
+  NES and Sega CD need only a name and a place in `GameSystem.PICKER_ORDER`. It shares the icon
+  row, which also gave the game grid a row of height back.
+- Still to check: a narrower phone than the SM-S938B.
 
 ### 5.4 Battery
 - Measure drain off USB power, over a 1–2 hour session, at fixed brightness.
@@ -134,7 +135,7 @@ backed by the number or reworded.
 
 **Verification:** a new user can get from install to playing without the README.
 
-**Exit criteria for v0.3:** NES and Sega CD playable; the library handles twelve systems;
+**Exit criteria for v0.3:** NES and Sega CD playable; the library switches between all twelve systems;
 battery measured; 16 KB confirmed on hardware; help screen in place.
 
 ---

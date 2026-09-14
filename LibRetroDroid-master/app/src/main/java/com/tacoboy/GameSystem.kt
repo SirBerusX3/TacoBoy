@@ -1,6 +1,8 @@
 package com.tacoboy
 
 import android.content.Context
+import androidx.annotation.StringRes
+import com.android.libretrodroid.R
 
 /**
  * Extension -> libretro core mapping. Only systems whose core .so is
@@ -240,12 +242,40 @@ enum class GameSystem(
     /** Resolves TacoBoyPrefs' saved core choice against this system's real cores list,
      *  falling back to defaultCore if nothing's saved or the saved fileName no longer
      *  matches one of them (e.g. a stale value from a since-removed core). */
+    /** The system's name as players know it, for the library's system picker. A `when` rather
+     *  than a constructor argument so adding a system without a name fails to compile. */
+    @get:StringRes
+    val nameRes: Int
+        get() = when (this) {
+            GBA -> R.string.system_name_gba
+            GAME_BOY -> R.string.system_name_gb
+            GAME_BOY_COLOR -> R.string.system_name_gbc
+            SNES -> R.string.system_name_snes
+            GENESIS -> R.string.system_name_genesis
+            LYNX -> R.string.system_name_lynx
+            MASTER_SYSTEM -> R.string.system_name_master_system
+            GAME_GEAR -> R.string.system_name_game_gear
+            SG_1000 -> R.string.system_name_sg1000
+            PS1 -> R.string.system_name_ps1
+        }
+
     fun selectedCore(context: Context): CoreDefinition {
         val fileName = TacoBoyPrefs.getSelectedCoreFileName(context, this)
         return cores.firstOrNull { it.fileName == fileName } ?: defaultCore
     }
 
     companion object {
+        /** The system picker's order: by maker, then by release within each. Separate from the
+         *  enum's order, which other code relies on; GameSystemTest checks it lists every system
+         *  exactly once, so a new one cannot be missing from the picker. */
+        val PICKER_ORDER = listOf(
+            GAME_BOY, GAME_BOY_COLOR, GBA, SNES,
+            SG_1000, MASTER_SYSTEM, GENESIS, GAME_GEAR,
+            LYNX,
+            PS1,
+        )
+
+
         private val EXTENSION_MAP = mapOf(
             "gba" to GBA,
             "gb" to GAME_BOY,
