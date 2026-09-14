@@ -5,6 +5,49 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (privacy policy — roadmap 6.2.8)
+
+**TacoBoy has a privacy policy**, `PRIVACY.md` at the repository root, linked from Settings >
+About and from the README. RetroAchievements requires one that is easy to find and states data
+retention, server locations and GDPR compliance (compliance audit F5), and auto-fails any with
+placeholders or contradictions. So it was written from an inventory of the code rather than a
+template, and every claim was then checked against the code again before it went in.
+
+**The inventory, in short:** no servers, accounts, analytics or telemetry of TacoBoy's own; two
+permissions that matter (Internet, Vibrate); cloud backup already off (`allowBackup="false"`);
+and exactly two outside services, RetroAchievements when logged in and libretro's thumbnail
+server when box art is downloaded. The policy tables everything stored on the device with how
+long each is kept, and lists what each service is sent and when. Contact is the repository's
+Issues page, chosen by the user, with a warning not to post credentials there.
+
+**The re-check caught six things the first draft got wrong or left out**, each of which would
+have been a contradiction:
+
+  - **Saves cannot be deleted in the app.** The draft said "until you delete them"; nothing
+    deletes them, and saving again only replaces them.
+  - **Play history survives changing folders.** It is keyed per file, not per folder.
+  - **Box art requests carry more than the game's name.** `BoxArtCache` sets no user agent, so
+    Android's default one goes with each request, and it names the phone model and Android
+    version.
+  - **Crash records hold the game's location**, its content URI, not just its name.
+  - **Log lines also go to Android's system log**, not only the in-memory buffer.
+  - **Diagnostics include the phone's make and processor type**, not just the model.
+
+**Server locations are stated only as far as they can be known.** TacoBoy holds nothing off the
+device, so its own answer is complete. For the two outside services, the policy says each is run
+independently and links its operator's own policy for where data is processed, instead of
+asserting a location or an absence of one that could not be verified. RetroAchievements' site
+refuses automated fetches, so its terms were identified by search rather than read directly.
+
+**The About tab link** first showed the full URL, which squeezed the "Privacy Policy" label to
+nothing, caught in a screenshot. `linkRow` gained a `shown` text, and the row now reads
+"PRIVACY.md". On the SM-S938B the label and link both show, and tapping opens
+`https://github.com/SirBerusX3/TacoBoy/blob/main/PRIVACY.md` in the browser. That page exists
+only once this is pushed.
+
+**It has to be kept true.** Any change to what TacoBoy stores or sends needs the policy revised
+in the same change, or it becomes the contradiction that fails an application.
+
 ## 2026-09-14 ("Check RetroAchievements" readies a game for offline play)
 
 **A game can now be prepared for offline tracking without starting it.** The cache in the entry

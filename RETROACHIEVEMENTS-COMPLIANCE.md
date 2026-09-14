@@ -82,7 +82,7 @@ and loses nothing.
 | F2 | Published listing of every shipped FOSS core + licence | ✅ | Settings > About lists all ten components and their licences (2026-08-24), and since 2026-09-14 each links the repository its shipped build came from. Each URL checked to load; one tapped on device and opened in the browser |
 | F3 | No non-commercial cores alongside commercialization | ✅ | Snes9x and Genesis Plus GX are non-commercial; TacoBoy has no monetization. The decision to keep the donation link on the repo rather than in the app preserves this — see CHANGELOG 2026-08-24 |
 | F4 | GPL/LGPL/MPL obligations satisfied | ⚠️ | About tab has a Source Code row, but `SOURCE_URL` is blank ("Not set yet") until the repo is published |
-| F5 | **Privacy policy** (retention, server locations, GDPR) | ❌ | None exists. Required, and section G auto-fails a policy with placeholders or contradictions — so it must be written properly or not at all |
+| F5 | **Privacy policy** (retention, server locations, GDPR) | ✅ | Since 2026-09-14: `PRIVACY.md`, linked from Settings > About and the README. Written from an inventory of the code, not a template: retention per item stored, no servers of TacoBoy's own, the two outside services with what each is sent and a link to its operator's policy, and GDPR (no telemetry retained). Every claim re-checked against the code before publishing |
 
 ## G. Auto-fail criteria — current standing
 
@@ -95,7 +95,7 @@ and loses nothing.
 | Non-unique user agent | ✅ unique, in RA's full format (C1, C1b) |
 | Undisclosed history of another emulator's UA | ✅ |
 | Non-commercial cores + any commercialization | ✅ |
-| Privacy policy with placeholders/contradictions | N/A until one exists — then must be exact |
+| Privacy policy with placeholders/contradictions | ✅ no placeholders; checked claim by claim against the code (F5). Must be revised whenever what TacoBoy stores or sends changes |
 
 ## If this is ever pursued, in cost order
 
@@ -110,7 +110,7 @@ and loses nothing.
 
 **Medium:**
 7. ~~Offline unlock queueing with retry (A4)~~ — done 2026-09-14, including offline starts of games played online before
-8. Write a real privacy policy (F5) — mostly a writing job, but must be exact
+8. ~~Write a real privacy policy (F5) — mostly a writing job, but must be exact~~ — done 2026-09-14
 9. Measured-progress display (A2b)
 
 **Large — the real cost:**

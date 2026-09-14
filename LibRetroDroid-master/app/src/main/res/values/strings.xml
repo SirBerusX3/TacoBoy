@@ -64,6 +64,8 @@
     <string name="settings_section_about">About</string>
     <string name="about_version_label">Version</string>
     <string name="about_source_label">Source Code</string>
+    <string name="about_privacy_label">Privacy Policy</string>
+    <string name="about_privacy_note">TacoBoy has no servers and collects no analytics. Everything it keeps stays on your phone, and it only connects to RetroAchievements when you log in and to libretro\'s box art server when you download box art. The policy lists exactly what is stored, what is sent, and how to delete it.</string>
     <string name="about_source_note">TacoBoy is built on LibretroDroid, which is licensed under the GNU General Public License v3. That licence requires anyone who receives a copy of the app to be able to get its source code, so the link is here rather than buried. If the link above is not set yet, ask whoever gave you this build for the source.</string>
     <string name="about_content_note_title">No games or BIOS included</string>
     <string name="about_content_note">TacoBoy contains no games and no BIOS files. You supply your own, from cartridges and discs you own. Nothing is downloaded for you, and the app has no way to obtain them.</string>

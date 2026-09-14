@@ -13,7 +13,7 @@ what is still to do.
 | 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
 | 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
 | **5 – Finish what's open** | **v0.3** | Not started |
-| **6 – Achievements done properly** | **v0.4** | 6.1 done; 6.2 item 7 done |
+| **6 – Achievements done properly** | **v0.4** | 6.1 done; 6.2 items 7–8 done |
 | **7 – Reach** | **v1.0** | Not started |
 
 ## Principles
@@ -156,7 +156,7 @@ The item numbers and section references are from `RETROACHIEVEMENTS-COMPLIANCE.m
 ### 6.2 Medium
 7. ~~Offline unlock queue with retry (A4) — an unlock earned without signal is not lost.~~ Done 2026-09-14,
    including offline starts of any game started or checked online at least once (AchievementCache).
-8. A real privacy policy (F5). Mostly writing, but it must be exact.
+8. ~~A real privacy policy (F5). Mostly writing, but it must be exact.~~ Done 2026-09-14: `PRIVACY.md`.
 9. Measured-progress display (A2b), e.g. "37 / 100 coins".
 
 ### 6.3 Hardcore (stretch)

@@ -36,14 +36,19 @@ private const val SCALE_SLIDER_STEP = 0.05f
  * No donation link sits beside it, or anywhere in the app: that lives on the source repository
  * instead. Genesis Plus GX's terms forbid use "in a commercial product or activity", and a
  * link in a README can be reworded or removed at will, where one baked into an APK is already
- * in every copy that has been handed out. The only other outbound links are the licence list's
- * upstream repositories.
+ * in every copy that has been handed out. The only other outbound links are the privacy policy
+ * and the licence list's upstream repositories.
  */
 // GPL-3 obliges anyone handed a binary to be able to get its source, and this link is
 // how TacoBoy discharges that. It must point at a repository the recipient can
 // actually reach -- an empty string renders as "Not set yet", which is honest for a
 // build passed to one person and not good enough for a public release.
 private const val SOURCE_URL = "https://github.com/SirBerusX3/TacoBoy"
+
+/** RetroAchievements requires a privacy policy that is "easy to find" (compliance audit F5), and
+ *  the About tab is where anyone looks. It points at the file on main, not a tagged copy, so the
+ *  link in an installed build always shows the current policy. */
+private const val PRIVACY_URL = "https://github.com/SirBerusX3/TacoBoy/blob/main/PRIVACY.md"
 
 /** One bundled component: what it is, the licence it is under, and where its source lives. */
 private data class Licence(val component: String, val licence: String, val url: String)
@@ -1235,6 +1240,11 @@ class SettingsActivity : AppCompatActivity() {
             linkRow(getString(R.string.about_source_label), SOURCE_URL),
             R.string.about_source_note))
 
+        container.addView(withNote(
+            // The full URL would squeeze the label out of the row, as it did when first added.
+            linkRow(getString(R.string.about_privacy_label), PRIVACY_URL, shown = "PRIVACY.md"),
+            R.string.about_privacy_note))
+
         container.addView(standaloneNote(
             R.string.about_content_note_title, R.string.about_content_note))
 
@@ -1307,7 +1317,7 @@ class SettingsActivity : AppCompatActivity() {
 
     /** Opens [url] in a browser. A blank url renders as "Not set yet" rather than being hidden,
      *  so an unfinished build says so instead of silently omitting something it owes. */
-    private fun linkRow(label: String, url: String): LinearLayout {
+    private fun linkRow(label: String, url: String, shown: String = url): LinearLayout {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -1320,7 +1330,7 @@ class SettingsActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
         val value = TextView(this).apply {
-            text = if (url.isBlank()) getString(R.string.about_link_unset) else url
+            text = if (url.isBlank()) getString(R.string.about_link_unset) else shown
             setTextColor(if (url.isBlank()) 0x66FFFFFF.toInt() else 0xFF7FB3D5.toInt())
             textSize = 13f
             gravity = Gravity.END

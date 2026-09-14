@@ -167,6 +167,8 @@ other way. Anything committed since then can be recovered from history instead.
   RetroAchievements' hardcore rules. The headline finding: unlocks are submitted softcore
   only, by design, and hardcore is further away than the rule list suggests.
 - **[BIOSregion.md](BIOSregion.md)** — PS1 BIOS filenames mapped to regions.
+- **[PRIVACY.md](PRIVACY.md)** — privacy policy. TacoBoy has no servers and no analytics; this
+  lists everything it stores on your phone and everything it sends, to whom, and when.
 
 ## Licence
 
