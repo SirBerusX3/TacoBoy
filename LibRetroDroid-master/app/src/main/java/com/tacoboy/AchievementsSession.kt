@@ -161,15 +161,10 @@ class AchievementsSession(
     ): Activation? {
         val gameId = RetroAchievementsClient.identifyGameId(apiKeyUsername, apiKey, hash, clause)
         if (gameId != null && gameId <= 0) return null
-        val progress = gameId?.let { RetroAchievementsClient.getGameProgress(apiKeyUsername, apiKey, it, clause) }
-        val definitions = gameId?.let { RetroAchievementsClient.getAchievementDefinitions(sessionUsername, sessionToken, it, clause) }
-        if (progress != null && definitions != null) {
-            AchievementCache.save(
-                context, hash,
-                AchievementCache.Entry(apiKeyUsername, progress, definitions, System.currentTimeMillis()),
-            )
-            return Activation(hash, progress, definitions, fromCache = false)
+        val fetched = gameId?.let {
+            AchievementCache.refresh(context, hash, it, apiKeyUsername, apiKey, sessionUsername, sessionToken, clause)
         }
+        if (fetched != null) return Activation(hash, fetched.progress, fetched.definitions, fromCache = false)
 
         val cached = AchievementCache.load(context, hash, apiKeyUsername)
         if (cached == null) {

@@ -22,7 +22,7 @@ is a feature decision to revisit, not a bug.
 | A2b | Measured/Trigger flags visible in list **and** during gameplay | ⚠️ | Unlock toasts exist; **Measured progress display not implemented** — needs checking against a game that uses it |
 | A3 | **Rich Presence** | ❌ | No implementation anywhere |
 | A3 | **Leaderboards** | ❌ | No implementation anywhere |
-| A4 | **Offline unlock queueing** | ✅ | Since 2026-09-14. Every unlock is written to a private on-disk queue (`PendingUnlocks`) before its first send, retried on rcheevos' schedule while the app runs and on every start, with RA's `o` offset so the real unlock time is kept. Seen on device against the live server. A game started with no connection tracks from the data cached at its last online start (`AchievementCache`); one never started online cannot be identified and tracks nothing |
+| A4 | **Offline unlock queueing** | ✅ | Since 2026-09-14. Every unlock is written to a private on-disk queue (`PendingUnlocks`) before its first send, retried on rcheevos' schedule while the app runs and on every start, with RA's `o` offset so the real unlock time is kept. Seen on device against the live server. A game started with no connection tracks from the data cached at its last online start or "Check RetroAchievements" (`AchievementCache`); one never seen online cannot be identified and tracks nothing |
 | A5 | Hit counts stored in save states | ❌ | Recommended, not required. `serializeState` is the core's state only; the rcheevos runtime is not included |
 | A6 | RAIntegration DLL (Windows) | N/A | Android only |
 | A7 | Standard save formats | ✅ (likely) | SRAM comes from the core's own `serializeSRAM`, written as `.srm`; matches other libretro frontends |

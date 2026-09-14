@@ -5,6 +5,32 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 ("Check RetroAchievements" readies a game for offline play)
+
+**A game can now be prepared for offline tracking without starting it.** The cache in the entry
+below was only written by an online game start, so a player about to lose their connection had
+to launch each game they wanted to play. The library's "Check RetroAchievements" now saves the
+game too, when it identifies it and live tracking is logged in.
+
+**One at a time, deliberately, rather than a "download the library" action.** That would mean
+hashing every ROM, which for PS1 disc images is slow on a large library, and sending RA a burst
+of requests per game. Chosen with the user.
+
+**The list is no slower to open.** It opens as soon as the game is identified, as before, and
+the fetch and save run behind it, with a short "Saved for offline achievement tracking" toast
+when done. Both paths now share `AchievementCache.refresh`, which the game session's online
+start uses too, so the two cannot drift apart on what they save. It needs the live-tracking
+session, since the definitions do; with only the Web API key logged in, the check behaves as
+it always has and nothing is saved. The Live Tracking note in Settings now says games started
+or checked online track offline, and that offline unlocks are sent on reconnecting.
+
+**Verified on the SM-S938B** with 007: The World Is Not Enough, which had no cache file:
+"Check RetroAchievements" opened its list and wrote its cache file, `-rw-------`, without the
+game being started. Then, with Wi-Fi and data off, starting it from the library logged
+"Game identification failed", "tracking from data cached at 1789391053652" and "44 of 44
+achievements active". Network restored afterwards. The toast and the reworded Settings note
+were not read back on screen. 58 tests pass.
+
 ## 2026-09-14 (achievements track on an offline start — cached game data)
 
 **A game started with no connection now tracks achievements**, provided it has been started

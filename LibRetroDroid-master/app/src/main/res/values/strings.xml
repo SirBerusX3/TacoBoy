@@ -344,6 +344,7 @@
     <string name="game_menu_check_achievements">Check RetroAchievements</string>
     <string name="achievements_check_not_logged_in">Log in to RetroAchievements in Settings first.</string>
     <string name="achievements_check_not_recognized">Not recognized by RetroAchievements — this exact file doesn\'t match a known hash.</string>
+    <string name="achievements_saved_for_offline_toast">Saved for offline achievement tracking</string>
     <string name="achievements_check_failed">Couldn\'t reach RetroAchievements — check your connection.</string>
     <string name="achievements_list_close">✕</string>
     <string name="achievements_list_summary">%1$d / %2$d earned — %3$d points</string>
@@ -356,7 +357,7 @@
     </plurals>
     <string name="achievements_list_empty">This game has no achievements on RetroAchievements yet.</string>
     <string name="achievements_list_load_failed">Couldn\'t load achievements — check your connection and try again.</string>
-    <string name="settings_live_tracking_note">Unlocks achievements automatically as you play and reports them to RetroAchievements. Needs a separate login from the one above — RetroAchievements only accepts your account password (not the Web API key) for this. Your password is used once to sign in and is never stored; only the resulting session stays saved.</string>
+    <string name="settings_live_tracking_note">Unlocks achievements automatically as you play and reports them to RetroAchievements. Needs a separate login from the one above — RetroAchievements only accepts your account password (not the Web API key) for this. Your password is used once to sign in and is never stored; only the resulting session stays saved. Games you have started, or checked with \"Check RetroAchievements\", while online are saved so they track offline too; unlocks earned offline are sent when you reconnect.</string>
     <string name="settings_hardcore_mode_label">Hardcore Mode</string>
     <string name="settings_hardcore_mode_note">Follows RetroAchievements\' Hardcore rules: save states can still be created but not loaded, and turning this on while a game is running restarts that game when you return to it, so progress since your last in-game save is lost. Turning it off takes effect straight away. While it is on, TacoBoy won\'t resume your last game on launch. Your SRAM/cart save (auto-save and manual) is unaffected. This doesn\'t yet change how achievement unlocks are reported to RetroAchievements.</string>
     <string name="settings_test_connection_button">Test Connection</string>

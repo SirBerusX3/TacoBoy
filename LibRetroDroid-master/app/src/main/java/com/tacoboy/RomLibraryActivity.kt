@@ -662,6 +662,11 @@ class RomLibraryActivity : AppCompatActivity() {
      * successful match hands off to AchievementsActivity for the actual list;
      * every other outcome (not logged in, unsupported system, no match, request
      * failure) has nothing to show a screen for, so it's just a toast.
+     *
+     * A match is also saved for offline play (AchievementCache) when live tracking is logged
+     * in, so a game can be readied before going offline without having to start it. That runs
+     * behind the list rather than before it, so checking is no slower than it was; it needs
+     * the live-tracking session because the definitions do.
      */
     private fun checkAchievements(rom: RomLibrary.RomEntry) {
         val username = TacoBoyPrefs.getRetroAchievementsUsername(this)
@@ -674,15 +679,32 @@ class RomLibraryActivity : AppCompatActivity() {
         val displayTitle = TacoBoyPrefs.getCustomTitle(this, rom.uri.toString()) ?: rom.displayName
 
         lifecycleScope.launch {
+            var hash: String? = null
             val gameId = withContext(Dispatchers.IO) {
-                val hash = RomHasher.raHash(this@RomLibraryActivity, rom) ?: return@withContext null
-                RetroAchievementsClient.identifyGameId(username, apiKey, hash)
+                hash = RomHasher.raHash(this@RomLibraryActivity, rom) ?: return@withContext null
+                RetroAchievementsClient.identifyGameId(username, apiKey, hash!!)
             }
             when {
-                gameId != null && gameId > 0 -> AchievementsActivity.start(this@RomLibraryActivity, gameId, displayTitle)
+                gameId != null && gameId > 0 -> {
+                    AchievementsActivity.start(this@RomLibraryActivity, gameId, displayTitle)
+                    hash?.let { saveForOffline(it, gameId, username, apiKey) }
+                }
                 gameId == null -> Toast.makeText(this@RomLibraryActivity, R.string.achievements_check_failed, Toast.LENGTH_LONG).show()
                 else -> Toast.makeText(this@RomLibraryActivity, R.string.achievements_check_not_recognized, Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    private fun saveForOffline(hash: String, gameId: Int, username: String, apiKey: String) {
+        val sessionUsername = TacoBoyPrefs.getRetroAchievementsSessionUsername(this) ?: return
+        val sessionToken = TacoBoyPrefs.getRetroAchievementsSessionToken(this) ?: return
+        val appContext = applicationContext
+        lifecycleScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                AchievementCache.refresh(appContext, hash, gameId, username, apiKey, sessionUsername, sessionToken)
+            }
+            // Application context: the achievement list is in front by now.
+            if (saved != null) Toast.makeText(appContext, R.string.achievements_saved_for_offline_toast, Toast.LENGTH_SHORT).show()
         }
     }
 

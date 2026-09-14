@@ -14,10 +14,10 @@ import java.io.File
  * identify the game and send its definitions, so an offline start tracks nothing and the unlock
  * queue (PendingUnlocks) never has anything to hold.
  *
- * One file per game, keyed by its RA hash, rewritten on every online start so it is as fresh as
- * the last time there was a connection. The trade-off, accepted with the user: offline, a game
- * runs on the definitions as they were then. If RA has since changed an achievement, the old
- * version is the one evaluated until the next online start. Unlocks still go to RA, which has
+ * One file per game, keyed by its RA hash, rewritten on every online start and every "Check
+ * RetroAchievements" so it is as fresh as the last time there was a connection. The trade-off,
+ * accepted with the user: offline, a game runs on the definitions as they were then. If RA has
+ * since changed an achievement, the old version is the one evaluated until the next refresh. Unlocks still go to RA, which has
  * the final say when the queue sends them.
  *
  * App-private storage. Nothing here is a credential: achievement definitions are public, and the
@@ -33,6 +33,33 @@ internal object AchievementCache {
         val definitions: List<AchievementDefinition>,
         val cachedAtMs: Long,
     )
+
+    /**
+     * Fetches a game's achievement list and definitions from RA and saves them, returning what
+     * was saved, or null if either request failed. Used at every online game start, and by the
+     * library's "Check RetroAchievements", so a game can be readied for offline play without
+     * being started. Blocking network calls: run off the main thread.
+     *
+     * The list is fetched with the Web API key account and the definitions with the live-tracking
+     * session, the same two tiers AchievementsSession uses (see RetroAchievementsClient).
+     */
+    fun refresh(
+        context: Context,
+        gameHash: String,
+        gameId: Int,
+        apiKeyUsername: String,
+        apiKey: String,
+        sessionUsername: String,
+        sessionToken: String,
+        core: String? = null,
+    ): Entry? {
+        val progress = RetroAchievementsClient.getGameProgress(apiKeyUsername, apiKey, gameId, core) ?: return null
+        val definitions = RetroAchievementsClient.getAchievementDefinitions(sessionUsername, sessionToken, gameId, core)
+            ?: return null
+        val entry = Entry(apiKeyUsername, progress, definitions, System.currentTimeMillis())
+        save(context, gameHash, entry)
+        return entry
+    }
 
     fun save(context: Context, gameHash: String, entry: Entry) {
         val dir = File(context.filesDir, DIR_NAME)
