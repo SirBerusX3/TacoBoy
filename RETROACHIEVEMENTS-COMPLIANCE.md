@@ -22,7 +22,7 @@ is a feature decision to revisit, not a bug.
 | A2b | Measured/Trigger flags visible in list **and** during gameplay | ⚠️ | Unlock toasts exist; **Measured progress display not implemented** — needs checking against a game that uses it |
 | A3 | **Rich Presence** | ❌ | No implementation anywhere |
 | A3 | **Leaderboards** | ❌ | No implementation anywhere |
-| A4 | **Offline unlock queueing** | ❌ | Unlocks are submitted immediately; a failed submit is not cached for retry |
+| A4 | **Offline unlock queueing** | ✅ | Since 2026-09-14. Every unlock is written to a private on-disk queue (`PendingUnlocks`) before its first send, retried on rcheevos' schedule while the app runs and on every start, with RA's `o` offset so the real unlock time is kept. Seen on device against the live server. **Limit:** a game started with no connection cannot be identified, so nothing is tracked and there is nothing to queue — see CHANGELOG 2026-09-14 |
 | A5 | Hit counts stored in save states | ❌ | Recommended, not required. `serializeState` is the core's state only; the rcheevos runtime is not included |
 | A6 | RAIntegration DLL (Windows) | N/A | Android only |
 | A7 | Standard save formats | ✅ (likely) | SRAM comes from the core's own `serializeSRAM`, written as `.srm`; matches other libretro frontends |
@@ -109,7 +109,7 @@ and loses nothing.
 6. ~~Upstream links in the About licence list (F2)~~ — done 2026-09-14
 
 **Medium:**
-7. Offline unlock queueing with retry (A4)
+7. ~~Offline unlock queueing with retry (A4)~~ — done 2026-09-14, for games started online
 8. Write a real privacy policy (F5) — mostly a writing job, but must be exact
 9. Measured-progress display (A2b)
 

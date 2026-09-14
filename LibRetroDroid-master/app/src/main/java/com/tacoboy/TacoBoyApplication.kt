@@ -33,6 +33,10 @@ class TacoBoyApplication : Application() {
 
         TacoBoyLog.setLevel(TacoBoyPrefs.getLogLevel(this))
 
+        // Unlocks queued without a connection last time go out as soon as there is one. A
+        // no-op pass when the queue is empty or live tracking is logged out.
+        UnlockSync.kick(this)
+
         val startedAt = SystemClock.elapsedRealtime()
 
         // Surviving the startup window is what "healthy" means here: there is no single

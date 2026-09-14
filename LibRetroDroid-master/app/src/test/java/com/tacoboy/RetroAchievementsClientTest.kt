@@ -44,6 +44,65 @@ class RetroAchievementsClientTest {
         assertEquals("9145cb7d7a0ce504ea227b0a63c6313c", signature)
     }
 
+    /** A delayed unlock appends the id again and the seconds since unlock, as
+     *  rc_api_init_award_achievement_request_hosted does whenever it sends `o`. Expected value
+     *  from Python: hashlib.md5(b'12345ChikinNuggit01234590').hexdigest(). */
+    @Test
+    fun `delayed unlock signature includes the id again and the offset`() {
+        assertEquals(
+            "b3509fb265a77f66db9b8a83f5bb96ac",
+            RetroAchievementsClient.awardAchievementSignature(12345, "ChikinNuggit", hardcore = 0, secondsSinceUnlock = 90),
+        )
+    }
+
+    /** No offset means no `o` parameter, so the signature must be the plain one. */
+    @Test
+    fun `zero offset signs like an immediate unlock`() {
+        assertEquals(
+            "3de47d22c8af5ba602764b24c7fd47cc",
+            RetroAchievementsClient.awardAchievementSignature(12345, "ChikinNuggit", hardcore = 0, secondsSinceUnlock = 0),
+        )
+    }
+
+    @Test
+    fun `success is awarded, including already unlocked`() {
+        assertEquals(RetroAchievementsClient.AwardOutcome.AWARDED,
+            RetroAchievementsClient.classifyAwardResponse(200, """{"Success":true,"Score":100,"AchievementID":12345}"""))
+        assertEquals(RetroAchievementsClient.AwardOutcome.AWARDED,
+            RetroAchievementsClient.classifyAwardResponse(200, """{"Success":true,"Error":"User already has this achievement unlocked."}"""))
+    }
+
+    /** Everything rcheevos retries: no response, no body, transient statuses, and a body that
+     *  is not RA's JSON, which is what a captive portal or proxy page looks like. */
+    @Test
+    fun `transient failures are retried`() {
+        val retry = RetroAchievementsClient.AwardOutcome.RETRY
+        assertEquals(retry, RetroAchievementsClient.classifyAwardResponse(null, null))
+        assertEquals(retry, RetroAchievementsClient.classifyAwardResponse(200, ""))
+        listOf(429, 502, 503, 504, 521, 522, 523, 524, 525).forEach {
+            assertEquals("HTTP $it", retry, RetroAchievementsClient.classifyAwardResponse(it, """{"Success":false,"Error":"busy"}"""))
+        }
+        assertEquals(retry, RetroAchievementsClient.classifyAwardResponse(200, "<html>Sign in to Wi-Fi</html>"))
+        assertEquals(retry, RetroAchievementsClient.classifyAwardResponse(500, """{"Success":false}"""))
+    }
+
+    @Test
+    fun `a definite refusal is rejected`() {
+        assertEquals(RetroAchievementsClient.AwardOutcome.REJECTED,
+            RetroAchievementsClient.classifyAwardResponse(422, """{"Success":false,"Error":"Achievement not found"}"""))
+        assertEquals(RetroAchievementsClient.AwardOutcome.REJECTED,
+            RetroAchievementsClient.classifyAwardResponse(200, """{"Success":false,"Error":"Unofficial achievements cannot be unlocked"}"""))
+    }
+
+    /** Kept rather than dropped, unlike rcheevos, because this queue exists to outlive exactly
+     *  this kind of problem. */
+    @Test
+    fun `a refused login is held for the next one`() {
+        assertEquals(RetroAchievementsClient.AwardOutcome.AUTH_FAILED,
+            RetroAchievementsClient.classifyAwardResponse(401, """{"Success":false,"Error":"Invalid token","Code":"invalid_credentials"}"""))
+        assertEquals(RetroAchievementsClient.AwardOutcome.AUTH_FAILED, RetroAchievementsClient.classifyAwardResponse(403, "{}"))
+    }
+
     @Test
     fun `parses core achievement definitions from a real-shaped achievementsets response`() {
         val response = JSONObject(

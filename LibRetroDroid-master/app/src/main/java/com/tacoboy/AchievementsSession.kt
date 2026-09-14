@@ -35,6 +35,9 @@ class AchievementsSession(
     private var gameHash: String? = null
     private var achievementsById: Map<Int, RetroAchievementsClient.AchievementInfo> = emptyMap()
     private val submittedThisSession = mutableSetOf<Int>()
+    // One "saved for later" toast per session is enough to say the connection is down; a
+    // toast for every unlock after that would only repeat it.
+    private var toldQueuedOffline = false
     // The user agent's core segment (RetroAchievementsClient.coreClause), fixed for the
     // session: the core cannot change without a new game load, which makes a new session.
     private var coreClause: String? = null
@@ -100,9 +103,12 @@ class AchievementsSession(
             submittedThisSession.clear()
 
             val definitionsById = definitions.associateBy { it.id }
+            // Earned but not yet sent reads as unearned to RA, so without this a queued unlock
+            // would be armed again, and re-earned, before the first one ever arrived.
+            val pendingIds = PendingUnlocks.idsFor(context, sessionUsername)
             val toActivate = progress.achievements
                 .asSequence()
-                .filter { !it.earned }
+                .filter { !it.earned && it.id !in pendingIds }
                 .mapNotNull { info ->
                     val definition = definitionsById[info.id] ?: return@mapNotNull null
                     info.id to definition.memAddr
@@ -145,8 +151,27 @@ class AchievementsSession(
             Toast.LENGTH_LONG,
         ).show()
 
-        withContext(Dispatchers.IO) {
-            RetroAchievementsClient.awardAchievement(sessionUsername, sessionToken, achievementId, hash, coreClause)
+        // Queued before the first attempt, not after a failed one, so nothing between the
+        // trigger and RA's answer -- the process being killed included -- can lose it.
+        val unlock = PendingUnlock(
+            username = sessionUsername,
+            achievementId = achievementId,
+            gameHash = hash,
+            hardcore = 0,
+            unlockedAtMs = System.currentTimeMillis(),
+            core = coreClause,
+        )
+        val sentNow = withContext(Dispatchers.IO) {
+            PendingUnlocks.add(context, unlock)
+            UnlockSync.runPass(context)
+            unlock.achievementId !in PendingUnlocks.idsFor(context, sessionUsername)
+        }
+        if (!sentNow) {
+            if (!toldQueuedOffline) {
+                toldQueuedOffline = true
+                Toast.makeText(context, R.string.achievement_queued_offline_toast, Toast.LENGTH_LONG).show()
+            }
+            UnlockSync.kick(context)
         }
     }
 

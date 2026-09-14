@@ -5,6 +5,73 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (offline unlock queue — roadmap 6.2.7)
+
+**An achievement earned without a connection is no longer lost.** Before this, an unlock was
+sent once and the result ignored, so a dropped signal cost the player the achievement. Every
+unlock now goes into a queue on disk, `PendingUnlocks`, and `UnlockSync` sends it when RA can
+be reached. That closes compliance audit A4: "unlocks created while offline must be securely
+cached and sync to RetroAchievements when connectivity returns".
+
+### How it works, and where it follows rcheevos
+
+  - **Queued before the first send**, not after a failed one, so nothing between the trigger and
+    RA's answer, including the process being killed, can lose it. The file is in app-private
+    storage, is written through a temporary file and a rename, and holds no credentials: the
+    session token is read at send time, and an entry is only sent for the account that earned it.
+  - **Retry timing is rcheevos' own** (`rc_client_award_achievement_callback`): once immediately,
+    then 1, 2, 4 ... 64 seconds, then every 120, for as long as the app runs. rcheevos keeps its
+    retries in memory; these are on disk, so a pass also runs at app start, after a live-tracking
+    login, and on every new unlock.
+  - **What counts as final is rcheevos' too** (`rc_client_should_retry`): `Success: true` is
+    awarded, RA's "already unlocked" included; a refusal is final only when RA sent an `Error`
+    and the status is not transient (429, 502–504, 521–525). No response, an empty body, or
+    something other than RA's JSON, like a Wi-Fi sign-in page, is retried.
+  - **One deliberate difference:** rcheevos drops an unlock when the login is refused. A 401 or
+    403 is held here instead, and the next login sends it, because outliving problems like that
+    is the whole reason this queue is on disk.
+  - **Late unlocks keep their real time.** RA's `o` parameter, seconds since the unlock, is sent
+    whenever it is non-zero, with the signature extended as
+    `rc_api_init_award_achievement_request_hosted` does: the id and the offset appended.
+    Wall-clock time, not rcheevos' monotonic clock, because the queue has to survive a reboot.
+  - **A queued unlock is not armed again** when the game is next played, which would have had it
+    re-earned before the first one arrived.
+
+The player sees one toast per session when an unlock is saved offline, and another when saved
+ones are later sent. No network-state listener fires the moment a connection returns: that needs
+ACCESS_NETWORK_STATE, and a retry at most two minutes later does the same job without adding a
+permission to the list trimmed for release. Failed sends now log RA's own error text.
+
+### Verified on the SM-S938B against the live server
+
+With the user's agreement, a fake unlock for a non-existent achievement, 999999999, dated five
+minutes earlier, was put in the queue with Wi-Fi and mobile data off, and the app restarted:
+
+```
+13:46:37.144  RETRY (HTTP no response)
+13:46:37.148  RETRY (HTTP no response)        immediate
+13:46:38.150  RETRY                           +1s
+13:46:40.153  RETRY                           +2s
+13:46:44.156  RETRY                           +4s
+13:46:52.159  RETRY                           +8s
+13:47:08.163  RETRY                           +16s   (reconnected at 13:47:10)
+13:47:40.552  REJECTED (HTTP 404, "Unknown achievement.")   +32s
+              RetroAchievements refused achievement 999999999; dropped from the queue
+```
+
+The schedule is rcheevos' to the second, the entry survived every failed pass, and once online
+RA's definite refusal removed it and the queue file with it. Network was restored afterwards.
+**Not shown by this:** that RA accepts the extended signature. RA may check the achievement
+before the signature, and it had no real one to award, so the `o` path is verified by the
+independently computed hash in the unit tests, not by a live award. 13 new tests, 53 passing.
+
+### Open questions
+- **A game started with no connection tracks nothing.** Starting a session needs RA to
+  identify the game and send its achievement definitions, and offline that fails ("Game
+  identification failed" appeared in the same log), so there is nothing to earn or queue. The
+  queue covers a connection lost *after* a game starts. Tracking offline starts would mean
+  caching each game's identification, definitions and earned list from its last online start.
+
 ## 2026-09-14 (upstream links in the licence list — roadmap 6.1.6)
 
 **Every entry in Settings > About's licence list now links its source repository**, shown

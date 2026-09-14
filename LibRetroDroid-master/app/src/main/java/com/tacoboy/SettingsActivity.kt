@@ -2058,6 +2058,8 @@ class SettingsActivity : AppCompatActivity() {
                 if (result.success && result.token != null) {
                     val loggedInAs = result.confirmedUsername ?: username
                     TacoBoyPrefs.setRetroAchievementsSession(this@SettingsActivity, loggedInAs, result.token)
+                    // Anything queued while logged out, or refused on an old login, can go now.
+                    UnlockSync.kick(this@SettingsActivity)
                     renderLiveTrackingStatus()
                     Toast.makeText(
                         this@SettingsActivity,

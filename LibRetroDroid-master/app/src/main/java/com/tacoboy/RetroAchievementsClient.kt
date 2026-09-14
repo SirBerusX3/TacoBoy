@@ -260,39 +260,104 @@ object RetroAchievementsClient {
         }
     }
 
+    /** What became of one unlock submission, and so what the queue does with it. */
+    enum class AwardOutcome {
+        /** RA accepted it, or already had it. Remove from the queue. */
+        AWARDED,
+
+        /** RA answered with a definite refusal (an unknown achievement, say). Retrying cannot
+         *  change the answer, so remove it. */
+        REJECTED,
+
+        /** No answer, or a transient one (a timeout, maintenance, rate limiting). Keep it. */
+        RETRY,
+
+        /** RA refused the credentials. Keep it and stop: every other entry would fail the same
+         *  way, and a fresh login is what sends them. */
+        AUTH_FAILED,
+    }
+
     /**
-     * Submits a real-time unlock — RA's Connect API `r=awardachievement`. Softcore only
-     * (a hardcore submission path is roadmap 6.3, a stretch goal — see
-     * RETROACHIEVEMENTS-COMPLIANCE.md). The `v=` request-signature algorithm is exact, taken
-     * directly from `rc_api_init_award_achievement_request_hosted` in the vendored
-     * `rapi/rc_api_runtime.c`, not guessed: MD5(achievementId + username + hardcoreFlag),
-     * each concatenated as their plain decimal-string form, hex-encoded lowercase.
+     * Submits an unlock -- RA's Connect API `r=awardachievement`. Softcore only for now (a
+     * hardcore submission path is roadmap 6.3, a stretch goal -- see
+     * RETROACHIEVEMENTS-COMPLIANCE.md). The request, including the `v=` signature, follows
+     * `rc_api_init_award_achievement_request_hosted` in the vendored `rapi/rc_api_runtime.c`
+     * exactly; see awardAchievementSignature.
+     *
+     * [secondsSinceUnlock] is RA's `o` parameter, which rcheevos sends on every retry so a late
+     * submission records when the achievement was really earned. 0 omits it, as rcheevos does.
      */
     fun awardAchievement(
         username: String,
         sessionToken: String,
         achievementId: Int,
         gameHash: String,
+        secondsSinceUnlock: Long = 0,
         core: String? = null,
-    ): Boolean {
-        val validation = awardAchievementSignature(achievementId, username, hardcore = 0)
+    ): AwardOutcome {
+        val validation = awardAchievementSignature(achievementId, username, hardcore = 0, secondsSinceUnlock)
         val url = "$CONNECT_API_BASE_URL?r=awardachievement&u=${Uri.encode(username)}&t=${Uri.encode(sessionToken)}" +
-            "&a=$achievementId&h=0&m=${Uri.encode(gameHash)}&v=$validation"
-        return try {
-            val json = get(url, core) ?: return false
-            json.optBoolean("Success", false)
-        } catch (e: Exception) {
-            TacoBoyLog.e(TAG, "Awarding achievement $achievementId failed", e)
-            false
+            "&a=$achievementId&h=0&m=${Uri.encode(gameHash)}" +
+            (if (secondsSinceUnlock > 0) "&o=$secondsSinceUnlock" else "") +
+            "&v=$validation"
+        val response = request(url, core)
+        val outcome = classifyAwardResponse(response.status, response.body)
+        if (outcome != AwardOutcome.AWARDED) {
+            // RA's own Error text, when there is one, says why far better than the status does.
+            val error = try { response.body?.let { JSONObject(it).optString("Error") } } catch (e: Exception) { null }
+            TacoBoyLog.e(TAG, "Awarding achievement $achievementId: $outcome (HTTP ${response.status ?: "no response"}" +
+                (if (!error.isNullOrEmpty()) ", \"$error\")" else ")"))
         }
+        return outcome
     }
 
-    /** MD5(achievementId + username + hardcoreFlag), each concatenated as their plain
-     *  decimal-string form -- split out from awardAchievement (which also needs
-     *  android.net.Uri, not available under a plain JVM unit test) so this pure,
-     *  deterministic piece is directly testable against a known input/expected-hash pair. */
-    internal fun awardAchievementSignature(achievementId: Int, username: String, hardcore: Int): String {
-        return md5("$achievementId$username$hardcore")
+    /** Transient statuses, copied from `rc_client_should_retry` in the vendored `rc_client.c`:
+     *  rate limiting, gateway and Cloudflare failures, maintenance mode. */
+    private val RETRYABLE_STATUSES = setOf(429, 502, 503, 504, 521, 522, 523, 524, 525)
+
+    /**
+     * Decides what to do with an award response, following rcheevos' own client
+     * (`rc_client_award_achievement_callback` and `rc_client_should_retry`) so TacoBoy gives up
+     * and retries in the same cases RetroArch does:
+     *
+     *  - `Success: true` is awarded, including RA's "already unlocked", which it returns as a
+     *    success carrying an error message.
+     *  - A refusal only counts as final when RA sent an actual `Error` and the status is not a
+     *    transient one. No response, an empty body, or a body that is not RA's JSON is retried.
+     *
+     * One deliberate difference: rcheevos treats a refused login like any other final error and
+     * drops the unlock. Its retries live in memory, so that loses little. TacoBoy's queue is on
+     * disk precisely so unlocks outlive problems like this one, so a 401 or 403 is kept for the
+     * next login instead.
+     *
+     * [status] null means no response at all.
+     */
+    internal fun classifyAwardResponse(status: Int?, body: String?): AwardOutcome {
+        if (status == null || body.isNullOrBlank()) return AwardOutcome.RETRY
+        if (status == 401 || status == 403) return AwardOutcome.AUTH_FAILED
+        if (status in RETRYABLE_STATUSES) return AwardOutcome.RETRY
+        val json = try {
+            JSONObject(body)
+        } catch (e: Exception) {
+            return AwardOutcome.RETRY
+        }
+        if (json.optBoolean("Success", false)) return AwardOutcome.AWARDED
+        return if (json.optString("Error").isNotEmpty()) AwardOutcome.REJECTED else AwardOutcome.RETRY
+    }
+
+    /** MD5(achievementId + username + hardcoreFlag), each as its plain decimal string -- and,
+     *  for a delayed unlock, the achievement id again and the seconds since unlock appended, as
+     *  `rc_api_init_award_achievement_request_hosted` does whenever it sends `o`. Split out from
+     *  awardAchievement (which also needs android.net.Uri, not available under a plain JVM unit
+     *  test) so it is directly testable against independently computed hashes. */
+    internal fun awardAchievementSignature(
+        achievementId: Int,
+        username: String,
+        hardcore: Int,
+        secondsSinceUnlock: Long = 0,
+    ): String {
+        val delayed = if (secondsSinceUnlock > 0) "$achievementId$secondsSinceUnlock" else ""
+        return md5("$achievementId$username$hardcore$delayed")
     }
 
     private fun md5(input: String): String {
@@ -312,6 +377,30 @@ object RetroAchievementsClient {
             }
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
             JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private class HttpResponse(val status: Int?, val body: String?)
+
+    /** A GET that keeps what get() throws away: the status and body of a non-200 response,
+     *  which is how an award is told apart from a transient failure. A null status is no
+     *  response at all -- no network, DNS failure, a timeout. */
+    private fun request(url: String, core: String?): HttpResponse {
+        var connection: HttpURLConnection? = null
+        return try {
+            connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                connectTimeout = TIMEOUT_MS
+                readTimeout = TIMEOUT_MS
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", userAgent(USER_AGENT_PREFIX, core))
+            }
+            val status = connection.responseCode
+            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            HttpResponse(status, stream?.bufferedReader()?.use { it.readText() })
+        } catch (e: Exception) {
+            HttpResponse(null, null)
         } finally {
             connection?.disconnect()
         }

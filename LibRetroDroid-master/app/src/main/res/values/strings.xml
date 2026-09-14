@@ -348,6 +348,11 @@
     <string name="achievements_list_close">✕</string>
     <string name="achievements_list_summary">%1$d / %2$d earned — %3$d points</string>
     <string name="achievement_unlocked_toast">Achievement unlocked: %1$s (+%2$d)</string>
+    <string name="achievement_queued_offline_toast">Couldn\'t reach RetroAchievements. Unlocks are saved and will be sent when you\'re back online.</string>
+    <plurals name="achievements_queued_sent_toast">
+        <item quantity="one">Sent %d saved achievement to RetroAchievements</item>
+        <item quantity="other">Sent %d saved achievements to RetroAchievements</item>
+    </plurals>
     <string name="achievements_list_empty">This game has no achievements on RetroAchievements yet.</string>
     <string name="achievements_list_load_failed">Couldn\'t load achievements — check your connection and try again.</string>
     <string name="settings_live_tracking_note">Unlocks achievements automatically as you play and reports them to RetroAchievements. Needs a separate login from the one above — RetroAchievements only accepts your account password (not the Web API key) for this. Your password is used once to sign in and is never stored; only the resulting session stays saved.</string>
