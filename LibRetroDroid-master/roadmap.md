@@ -12,8 +12,8 @@ what is still to do.
 | 2 – ROM and core management | v0.2 | Done, except NES (carried into Phase 5) |
 | 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
 | 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
-| **5 – Finish what's open** | **v0.3** | 5.1, 5.2, 5.3 and 5.7 done |
-| **6 – Achievements done properly** | **v0.4** | 6.1 and 6.2 done; 6.3 not started |
+| **5 – Finish what's open** | **v0.3 / v0.4** | 5.1, 5.2, 5.3 and 5.7 released in 0.3.0; 5.4–5.6 moved to v0.4 |
+| **6 – Achievements done properly** | **v0.4** | 6.1 and 6.2 released early, in 0.3.0; 6.3 not started |
 | **7 – Reach** | **v1.0** | Not started |
 
 ## Principles
@@ -146,8 +146,10 @@ backed by the number or reworded.
 
 **Verification:** a two-disc game swaps to disc 2 when it asks, on both PS1 and Sega CD.
 
-**Exit criteria for v0.3:** NES and Sega CD playable; the library switches between all twelve systems;
-battery measured; 16 KB confirmed on hardware; help screen in place.
+**v0.3 was released as 0.3.0 on 2026-09-14**, with NES, Sega CD, the system picker and multi-disc
+games, and Phase 6.1–6.2 ahead of schedule. It was a much larger update than 0.2.1, so it shipped
+without the three items that did not need to hold it back: battery (5.4), 16 KB on hardware (5.5,
+which waits on a device) and in-app help (5.6). They move to v0.4.
 
 ---
 
@@ -182,7 +184,8 @@ yet regardless. Start it only as a deliberate decision, not because 6.1 went qui
 **Verification:** each fix exercised on device; the compliance doc's standing table updated
 to match.
 
-**Exit criteria for v0.4:** 6.1 and 6.2 done; a written decision on 6.3.
+**Exit criteria for v0.4:** 5.4–5.6 done (battery measured, 16 KB confirmed on hardware, help
+screen in place); a written decision on 6.3. 6.1 and 6.2 already shipped in 0.3.0.
 
 ---
 

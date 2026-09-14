@@ -3,8 +3,9 @@
 **Effective 14 September 2026.**
 
 This policy covers the TacoBoy app for Android as it is built from this repository. The
-offline achievement features in section 2 (the unlock queue and saved game data) first
-appear in the release after version 0.2.1. In everything else, 0.2.1 behaves as described.
+offline achievement features in section 2 (the unlock queue and saved game data) and the
+multi-disc playlist copy first appear in version 0.3.0. In everything else, 0.2.1 behaves as
+described.
 
 ## In short
 

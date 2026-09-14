@@ -5,6 +5,24 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (0.3.0: NES, Sega CD, multi-disc and offline achievements)
+
+**Version 4 / 0.3.0.** A minor version, not 0.2.2, because this is a far larger update than 0.2.1's
+single fix: two new systems, multi-disc games, offline achievements, measured progress, Hardcore
+Mode enforcement, the system picker and a privacy policy. The roadmap had defined v0.3 as also
+needing battery figures, 16 KB on real hardware and in-app help; those three do not need to hold
+back what is finished, so they move to v0.4, and the roadmap now says so.
+
+**The release APK was verified before anything was published**, since it is built differently from
+the debug builds tested all day: signed with v1, v2 and v3 schemes by the same certificate as 0.2.x
+(`31ba4ed8…`), so it updates in place; versionCode 4 / 0.3.0; the same three permissions as 0.2.1;
+`tools-check-16kb.sh` passing all 10 libraries; code shrinking off, so the native code's callbacks
+into Kotlin by name cannot be renamed away. SHA-256 `a10d1cf3495535990571f7f45bf18fb5ba62b6c297b6db2deee21951dd19b2ef`.
+
+**Smoke-tested as the release APK on the SM-S938B**, installed over the previous build in place:
+one game on each of the twelve systems started with no fatal signal or load failure, and Final
+Fantasy VII loaded all three discs and swapped to Disc 2 and back with the core reporting each.
+
 ## 2026-09-14 (multi-disc games: playlists and Change Disc — roadmap 5.7)
 
 **Multi-disc PS1 and Sega CD games work**, on all three disc cores. Each of the user's is a folder
