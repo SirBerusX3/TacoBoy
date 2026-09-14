@@ -14,6 +14,7 @@ class GameSystemTest {
         assertEquals(5, GameSystem.GBA.raConsoleId)
         assertEquals(6, GameSystem.GAME_BOY_COLOR.raConsoleId)
         assertEquals(12, GameSystem.PS1.raConsoleId)
+        assertEquals(7, GameSystem.NES.raConsoleId)
     }
 
     /** The library's only way to switch system is the picker, so a system missing from its

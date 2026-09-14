@@ -36,6 +36,7 @@
     <string name="system_name_gba">Game Boy Advance</string>
     <string name="system_name_gb">Game Boy</string>
     <string name="system_name_gbc">Game Boy Color</string>
+    <string name="system_name_nes">NES</string>
     <string name="system_name_snes">Super Nintendo</string>
     <string name="system_name_genesis">Mega Drive / Genesis</string>
     <string name="system_name_lynx">Atari Lynx</string>
@@ -296,6 +297,11 @@
     <string name="core_desc_snes9x_overclock_cycles">Speeds up the emulated SNES processor so scenes that slowed down on real hardware run smoothly. Not accurate to the original console, and it can break games that depend on the original timing — try \'light\' first.</string>
     <string name="core_desc_snes9x_audio_interpolation">How sound samples are smoothed as they play. \'gaussian\' is what the real SNES hardware did and is the authentic choice; the others sound crisper but aren\'t what the console produced.</string>
     <string name="core_desc_snes9x_gfx_hires">Enables the SNES\'s higher-resolution and transparency modes, which games used for menus, text and effects. Turning it off is a speed hack that breaks those effects.</string>
+    <string name="core_desc_fceumm_region">Whether to run as a 60Hz NTSC console, a 50Hz PAL one, or a Dendy, the Russian clone with its own timing. Auto picks from the game. Forcing the wrong one changes game speed and music pitch.</string>
+    <string name="core_desc_fceumm_aspect">The shape of the picture. 8:7 PAR reproduces the slightly wide pixels of a real NES on a television, 4:3 fills a classic TV frame, and PP (pixel perfect) draws square pixels, sharper but narrower than the artists saw.</string>
+    <string name="core_desc_fceumm_nospritelimit">The NES could only draw eight sprites on a line, which is why busy scenes flicker. This removes the limit and the flicker, but a few games use it on purpose to hide things, and those can glitch.</string>
+    <string name="core_desc_fceumm_sndquality">Higher settings reproduce the sound chip more precisely, at a cost in CPU. Low is fine on most phones; raise it if the audio sounds harsh.</string>
+    <string name="core_desc_fceumm_up_down_allowed">Lets Left and Right (or Up and Down) register at once — impossible on a real D-pad. A few games have tricks that need it; leave it off otherwise.</string>
     <string name="core_desc_snes9x_region">Whether to emulate a 60Hz NTSC console or a 50Hz PAL one. \'auto\' picks from the ROM — forcing the wrong one changes game speed and music pitch.</string>
     <string name="core_desc_snes9x_reduce_sprite_flicker">Raises the real console\'s limit on how many sprites fit on one scanline, so objects stop blinking out in busy scenes. Looks better, but isn\'t what the original hardware did.</string>
     <string name="core_desc_snes9x_up_down_allowed">Lets Left and Right (or Up and Down) register at once — impossible on a real D-pad. A few games have tricks that need it; leave it off otherwise.</string>

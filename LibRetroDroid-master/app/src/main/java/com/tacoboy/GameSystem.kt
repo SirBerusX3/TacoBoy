@@ -84,6 +84,23 @@ enum class GameSystem(
             ControllerBindings.Target.START, ControllerBindings.Target.SELECT,
         )
     ),
+    /**
+     * NES, on FCEUmm, built from source at 236ccdf (CHANGELOG 2026-09-14). The core maps
+     * RetroPad A and B straight to the NES's A and B; its X and Y are turbo A and B, which
+     * TacoBoy's own turbo already provides, so the pad is the NES controller as printed.
+     * Cartridges only: .fds needs the disksys.rom BIOS and disk-side swapping, left for later.
+     */
+    NES(
+        listOf(CoreDefinition("fceumm_libretro_android.so", "FCEUmm")),
+        "Nintendo - Nintendo Entertainment System", "NES",
+        raConsoleId = 7, // RC_CONSOLE_NINTENDO
+        relevantControllerTargets = setOf(
+            ControllerBindings.Target.DPAD_UP, ControllerBindings.Target.DPAD_DOWN,
+            ControllerBindings.Target.DPAD_LEFT, ControllerBindings.Target.DPAD_RIGHT,
+            ControllerBindings.Target.A, ControllerBindings.Target.B,
+            ControllerBindings.Target.START, ControllerBindings.Target.SELECT,
+        )
+    ),
     // Full SNES layout (D-Pad/A/B/X/Y/L1/R1/Start/Select) — uses the class default above.
     SNES(
         listOf(CoreDefinition("snes9x_libretro_android.so", "Snes9x")),
@@ -250,6 +267,7 @@ enum class GameSystem(
             GBA -> R.string.system_name_gba
             GAME_BOY -> R.string.system_name_gb
             GAME_BOY_COLOR -> R.string.system_name_gbc
+            NES -> R.string.system_name_nes
             SNES -> R.string.system_name_snes
             GENESIS -> R.string.system_name_genesis
             LYNX -> R.string.system_name_lynx
@@ -269,7 +287,7 @@ enum class GameSystem(
          *  enum's order, which other code relies on; GameSystemTest checks it lists every system
          *  exactly once, so a new one cannot be missing from the picker. */
         val PICKER_ORDER = listOf(
-            GAME_BOY, GAME_BOY_COLOR, GBA, SNES,
+            GAME_BOY, GAME_BOY_COLOR, GBA, NES, SNES,
             SG_1000, MASTER_SYSTEM, GENESIS, GAME_GEAR,
             LYNX,
             PS1,
@@ -280,6 +298,7 @@ enum class GameSystem(
             "gba" to GBA,
             "gb" to GAME_BOY,
             "gbc" to GAME_BOY_COLOR,
+            "nes" to NES,
             "sfc" to SNES,
             "smc" to SNES,
             // Genesis Plus GX also advertises .bin, which is generic enough to be risky in

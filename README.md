@@ -11,7 +11,7 @@ reducing the risk of ghost touches occurring beneath the controller.
 
 There are now also on-screen controls, so the app can still be used without the Pocket Taco.
 
-Ten systems, one library screen, box art, per-system display shaders, a repositionable
+Eleven systems, one library screen, box art, per-system display shaders, a repositionable
 on-screen pad, and RetroAchievements lookup. Everything is local — ROMs come from a
 folder you grant access to, and nothing is uploaded anywhere.
 
@@ -19,7 +19,7 @@ Status: **pre-release** (`versionName 0.2.1`). Built and tested on arm64 devices
 
 ## Supported systems
 
-Ten systems across seven core binaries. A system is listed here only if its core `.so`
+Eleven systems across eight core binaries. A system is listed here only if its core `.so`
 actually ships in `jniLibs` — nothing is half-wired.
 
 | System | Short | Core | BIOS |
@@ -27,6 +27,7 @@ actually ships in `jniLibs` — nothing is half-wired.
 | Game Boy | GB | Gambatte | — |
 | Game Boy Color | GBC | Gambatte | — |
 | Game Boy Advance | GBA | mGBA | — |
+| NES | NES | FCEUmm | — |
 | Super Nintendo | SNES | Snes9x | — |
 | Mega Drive / Genesis | GEN | Genesis Plus GX | — |
 | Master System | SMS | Genesis Plus GX | — |
@@ -145,13 +146,14 @@ key, only a reinstall for every user.
 
 ## Cores
 
-The seven `.so` files in `app/src/main/jniLibs/arm64-v8a/` are committed deliberately.
+The eight `.so` files in `app/src/main/jniLibs/arm64-v8a/` are committed deliberately.
 Gradle does not build them, so a clone without them cannot produce a working app.
 
 Six of them were rebuilt from upstream source on 2026-09-11, each at the exact commit of
 the build it replaced, linked with `-z max-page-size=16384 -z common-page-size=16384` for
 16 KB page support. [CHANGELOG.md](LibRetroDroid-master/CHANGELOG.md) records the commit
 and build command for each, so they can be regenerated rather than only replaced.
+FCEUmm was added on 2026-09-14, built the same way from its own recorded commit.
 SwanStation is still the libretro buildbot's binary; it was already 16 KB compatible.
 
 `core-backups/` keeps earlier builds that git history cannot supply — the 2026-08-16

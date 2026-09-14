@@ -33,6 +33,10 @@ object RomHasher {
     private const val SNES_COPIER_HEADER_SIZE = 512
     private const val SNES_HEADER_MODULUS = 0x2000L
     private const val LYNX_HEADER_SIZE = 64
+    private const val NES_HEADER_SIZE = 16
+    private const val NES_MAGIC_SIZE = 4
+    private val INES_MAGIC = byteArrayOf('N'.code.toByte(), 'E'.code.toByte(), 'S'.code.toByte(), 0x1A)
+    private val FDS_MAGIC = byteArrayOf('F'.code.toByte(), 'D'.code.toByte(), 'S'.code.toByte(), 0x1A)
 
     /** Five bytes, not four: rcheevos compares against the literal "LYNX" with memcmp(..., 5),
      *  which takes in the terminating NUL. Matching that exactly is the point -- a four-byte
@@ -49,6 +53,7 @@ object RomHasher {
             val skipBytes = when (system) {
                 GameSystem.SNES -> snesHeaderSize(context, rom)
                 GameSystem.LYNX -> lynxHeaderSize(context, rom)
+                GameSystem.NES -> nesHeaderSize(context, rom)
                 else -> 0
             }
             val digest = MessageDigest.getInstance("MD5")
@@ -107,6 +112,36 @@ object RomHasher {
      *  remainder -- so the magic has to be read. Files no longer than the header itself
      *  are left alone, matching rcheevos' own `buffer_size > 64` guard: skipping every
      *  byte would hash nothing at all. */
+    /** rcheevos' rc_hash_nes (rhash/hash_rom.c) skips a 16-byte header when the file starts
+     *  with "NES\x1a" (iNES) or "FDS\x1a" (fwNES), and only when the file is longer than 16
+     *  bytes. Same shape as the Lynx check: the magic has to be read. */
+    private fun nesHeaderSize(context: Context, rom: RomLibrary.RomEntry): Int {
+        val length = DocumentFile.fromSingleUri(context, rom.uri)?.length() ?: return 0
+        return try {
+            context.contentResolver.openInputStream(rom.uri)?.use { input ->
+                val leading = ByteArray(NES_MAGIC_SIZE)
+                var read = 0
+                while (read < leading.size) {
+                    val count = input.read(leading, read, leading.size - read)
+                    if (count < 0) break
+                    read += count
+                }
+                nesHeaderSize(length, leading.copyOf(read))
+            } ?: 0
+        } catch (e: Exception) {
+            TacoBoyLog.e(TAG, "Failed to read NES header from ${rom.displayName}", e)
+            0
+        }
+    }
+
+    /** The decision itself, free of Context and SAF so it can be tested directly. */
+    internal fun nesHeaderSize(fileLength: Long, leadingBytes: ByteArray): Int {
+        if (fileLength <= NES_HEADER_SIZE) return 0
+        if (leadingBytes.size < NES_MAGIC_SIZE) return 0
+        val magic = leadingBytes.copyOf(NES_MAGIC_SIZE)
+        return if (magic.contentEquals(INES_MAGIC) || magic.contentEquals(FDS_MAGIC)) NES_HEADER_SIZE else 0
+    }
+
     private fun lynxHeaderSize(context: Context, rom: RomLibrary.RomEntry): Int {
         val length = DocumentFile.fromSingleUri(context, rom.uri)?.length() ?: return 0
         return try {

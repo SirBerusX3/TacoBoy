@@ -71,6 +71,7 @@ private val LICENCES = listOf(
     Licence("LibretroDroid (app base)", "GPL-3.0", "https://github.com/Swordfish90/LibretroDroid"),
     Licence("mGBA — Game Boy Advance", "MPL-2.0", "https://github.com/libretro/mgba"),
     Licence("Gambatte — Game Boy / Color", "GPL-2.0", "https://github.com/libretro/gambatte-libretro"),
+    Licence("FCEUmm — NES", "GPL-2.0", "https://github.com/libretro/libretro-fceumm"),
     Licence("Snes9x — SNES", "Non-commercial", "https://github.com/libretro/snes9x"),
     Licence("Genesis Plus GX — Genesis / SMS / GG / SG-1000", "Non-commercial", "https://github.com/libretro/Genesis-Plus-GX"),
     Licence("Handy — Atari Lynx", "zlib-style", "https://github.com/libretro/libretro-handy"),

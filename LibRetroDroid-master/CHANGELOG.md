@@ -5,6 +5,111 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (NES, on FCEUmm — roadmap 5.1)
+
+**TacoBoy plays NES cartridges**, its eleventh system and eighth core. Chosen with the user from
+FCEUmm, Mesen and Nestopia UE: FCEUmm is the lightest, which matters for battery and for phones
+slower than the SM-S938B, has very wide mapper coverage, and is RetroArch's usual default. Mesen
+is more accurate and much heavier; Nestopia sits between. **Cartridges only** (`.nes`), also the
+user's choice: Famicom Disk System `.fds` needs the `disksys.rom` BIOS and disk-side swapping,
+a separate piece of work.
+
+### The core, built from source
+
+| core | upstream | commit | build |
+|---|---|---|---|
+| fceumm | libretro/libretro-fceumm | `236ccdf` (2026-08-22) | `jni/` |
+
+The same recipe as the six cores rebuilt on 2026-09-11, with NDK 26.1.10909125: full clone,
+`git config core.abbrev 7`, then from inside `jni/`:
+
+```
+ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk NDK_APPLICATION_MK=Application.mk     APP_ABI=arm64-v8a APP_PLATFORM=android-21     "APP_LDFLAGS=-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
+# libs/arm64-v8a/libretro.so  ->  jniLibs/arm64-v8a/fceumm_libretro_android.so
+```
+
+FCEUmm's own `Android.mk` already passes `max-page-size=16384` and not `common-page-size`,
+exactly the half-fix that left Gambatte's RELRO misaligned, so both flags are still needed.
+Checked before it went in: both LOAD segments aligned at 0x4000, RELRO ending at 0x124000,
+46 `retro_*` exports, version string `(SVN) 236ccdf`, and `tools-check-16kb.sh` passing all 10
+libraries in the APK. 2.9 MB.
+
+### Wiring
+
+  - **`GameSystem.NES`**: `.nes`, RA console 7 (`RC_CONSOLE_NINTENDO`), libretro's
+    "Nintendo - Nintendo Entertainment System" box art folder (a known title returned 200), and
+    a pad of D-pad, A, B, Select and Start. FCEUmm maps RetroPad A and B straight to NES A and B;
+    its X and Y are turbo buttons, which TacoBoy's own turbo already provides, so they are left
+    off. Listed between Game Boy Advance and Super Nintendo in the system picker.
+  - **RetroAchievements hash**: `rc_hash_nes` skips a 16-byte header when the file starts with
+    `NES\x1a` (iNES) or `FDS\x1a`, and only when it is longer than 16 bytes. `RomHasher` does the
+    same, as a pure function with tests, including "NES" followed by the wrong fourth byte.
+  - **Core options**: Region, Aspect Ratio, No Sprite Limit, Sound Quality and Allow Opposing
+    Directions, keys and values read from `libretro_core_options.h` at `236ccdf`, each with a
+    description. Two obvious candidates were left out after reading `libretro.c`:
+    `fceumm_overscan` is only read under `#ifdef PSP`, so on Android it would do nothing, and
+    `fceumm_palette`'s values are internal names, two of them needing files or a shader this app
+    does not provide.
+  - **About**: FCEUmm, GPL-2.0, linked to libretro/libretro-fceumm. The README and the 16 KB
+    script's library count are updated. Nothing new is stored or sent, so the privacy policy is
+    unchanged: box art and RA lookups work as for every other system.
+
+### Every cartridge failed to load, and the fix nearly broke four other systems
+
+**First run with real ROMs: "Couldn't load this game"** for every NES file, logged by the core as
+`Error opening "10-Yard Fight (USA, Europe).nes"!`. At `236ccdf` FCEUmm reports
+`need_fullpath = true` overall, then calls `RETRO_ENVIRONMENT_SET_CONTENT_INFO_OVERRIDE` to say
+`.nes/.fds/.unf/.unif` should be loaded into memory instead. RetroArch honours that. LibretroDroid
+had never implemented the call, so it served the file by virtual name through its VFS, and FCEUmm
+checks the name with `path_is_valid()` before opening it. That check never reaches the frontend:
+FCEUmm initialises only libretro-common's file-stream half of the VFS, not the path half, so it
+`stat()`s a bare filename that does not exist on disk. Supporting VFS v3's `stat` would not have
+helped, which was checked in FCEUmm's `file_path_io.c` before building anything.
+
+**The fix is the missing environment call.** `Environment` now records each core's overrides:
+extensions, lower-cased, with their `need_fullpath`. `loadGameFromVirtualFiles` and
+`loadGameFromPath` use an override for the content's extension ahead of the core's global value.
+Overrides are cleared in `initialize`, which runs before the next core's `retro_set_environment`,
+and in `deinitialize`. `persistent_data` needs no handling, because the buffers LibretroDroid
+loads content into are never freed while a game runs. NES then loaded and played.
+
+**The regression sweep caught what that fix did to Genesis Plus GX.** Launching the first game on
+every system, Master System crashed the app: SIGSEGV, a null `strncpy` in Genesis Plus GX's
+`retro_load_game`. That core sends the same override, for `md|bin|smd|gen|sms|gg|sg` and more
+(it is libretro.h's own worked example), so its cartridges now arrived in memory too. With
+content in memory, `GET_GAME_INFO_EXT` answers where before it said no, and Genesis Plus GX copies
+its `dir` unchecked. LibretroDroid set `dir` to null whenever the virtual filename had no
+directory. libretro.h allows a null `dir` only for archive content. It is now an empty string,
+which is also what the core had derived from the path before: it uses the directory only as a
+fallback when the frontend supplies no system or save directory, and TacoBoy supplies both. The
+SG-1000 had crashed the same way on the first sweep, which misread it as started because the
+app's crash handler restarted it. The second sweep checked for fatal signals and the screen in
+front, not just the log line.
+
+**Verified on the SM-S938B:** 10-Yard Fight running (screenshot), and then a clean sweep, one game
+per system, all eleven: started, no fatal signal, no load failure, game screen in front. NES,
+Game Boy, Game Boy Color, Game Boy Advance, Super Nintendo, SG-1000, Master System (20 em 1),
+Mega Drive (Aaahh!!! Real Monsters), Game Gear, Lynx, PlayStation. The two crashes from the first
+sweep remain in the crash history on that phone. 3 new tests, 64 passing. **Play-tested by the
+user**, who reported everything working apart from the quick menu below.
+
+### The quick menu no longer fits, so it scrolls
+
+Testing NES turned up a layout fault older than it: the quick menu was cut off at the top. With
+the on-screen pad on, the clamp boundary sits higher (the handle at y≈1414 on the SM-S938B),
+leaving about 1,150 px under the Menu button, and the menu, with the Achievements and
+Achievement Tracking entries added earlier that day, needs about 1,700. As a plain LinearLayout
+constrained between the Menu button and the boundary, ConstraintLayout centred the overflow: the
+save slots slid up under the Menu button (the panel measured from y=128, above the button's
+bottom at 265) and the last entries ran down over the pad.
+
+`quick_menu_panel` is now a ScrollView around the same LinearLayout, with `constrainedHeight` so
+it never exceeds that space and a vertical bias of 0 so it hangs from the Menu button. Its
+scrollbar stays visible, since a menu cut off at an arbitrary entry otherwise gives no hint that
+more exists, and `toggleQuickMenu` scrolls it back to the top on every open so the save slots
+always come first. Seen on device: the panel spans 265 to 1414 exactly, Slot 1 is at the top,
+scrolling reaches Info (ending at 1369), and reopening returns to Slot 1.
+
 ## 2026-09-14 (system picker replaces the library's tab row — roadmap 5.3)
 
 **The library switches system through one button now**, naming the current system ("PlayStation

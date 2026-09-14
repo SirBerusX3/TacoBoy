@@ -91,6 +91,18 @@ object CoreOptions {
             Option("handy_overclock", "CPU Overclock Multiplier", listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"), "1"),
             Option("handy_frameskip", "Frameskip", listOf("disabled", "auto", "manual"), "disabled"),
         ),
+        // Keys and values read from libretro_core_options.h at FCEUmm's 236ccdf, each confirmed
+        // to be read by libretro.c on Android. fceumm_overscan looked like the obvious one and is
+        // not offered: libretro.c reads it only under #ifdef PSP, so here it would do nothing.
+        // fceumm_palette is left out too: its values are internal names, and two need files or
+        // a shader this app does not provide.
+        "fceumm_libretro_android.so" to listOf(
+            Option("fceumm_region", "Region", listOf("Auto", "NTSC", "PAL", "Dendy"), "Auto"),
+            Option("fceumm_aspect", "Aspect Ratio", listOf("8:7 PAR", "4:3", "PP"), "8:7 PAR"),
+            Option("fceumm_nospritelimit", "No Sprite Limit", listOf("disabled", "enabled"), "disabled"),
+            Option("fceumm_sndquality", "Sound Quality", listOf("Low", "High", "Very High"), "Low"),
+            Option("fceumm_up_down_allowed", "Allow Opposing Directions", listOf("disabled", "enabled"), "disabled"),
+        ),
         "snes9x_libretro_android.so" to listOf(
             Option("snes9x_overclock_cycles", "Reduce Slowdown (Hack)", listOf("disabled", "light", "compatible", "max"), "disabled"),
             Option("snes9x_audio_interpolation", "Audio Interpolation", listOf("gaussian", "cubic", "sinc", "none", "linear"), "gaussian"),
@@ -283,6 +295,11 @@ object CoreOptions {
         "mgba_allow_opposing_directions" to R.string.core_desc_mgba_allow_opposing_directions,
         "gambatte_gb_colorization" to R.string.core_desc_gambatte_gb_colorization,
         "handy_rot" to R.string.core_desc_handy_rot,
+        "fceumm_region" to R.string.core_desc_fceumm_region,
+        "fceumm_aspect" to R.string.core_desc_fceumm_aspect,
+        "fceumm_nospritelimit" to R.string.core_desc_fceumm_nospritelimit,
+        "fceumm_sndquality" to R.string.core_desc_fceumm_sndquality,
+        "fceumm_up_down_allowed" to R.string.core_desc_fceumm_up_down_allowed,
         "genesis_plus_gx_region_detect" to R.string.core_desc_gpgx_region_detect,
         "genesis_plus_gx_no_sprite_limit" to R.string.core_desc_gpgx_no_sprite_limit,
         "genesis_plus_gx_overscan" to R.string.core_desc_gpgx_overscan,

@@ -359,7 +359,7 @@ void LibretroDroid::loadGameFromPath(const std::string& gamePath) {
     game_info.path = Utils::cloneToCString(gamePath);
     game_info.meta = nullptr;
 
-    if (system_info.need_fullpath) {
+    if (Environment::getInstance().getNeedFullpathOverride(gamePath).value_or(system_info.need_fullpath)) {
         game_info.data = nullptr;
         game_info.size = 0;
     } else {
@@ -433,7 +433,12 @@ void LibretroDroid::loadGameFromVirtualFiles(std::vector<VFSFile> virtualFiles) 
     std::string firstFilePath = virtualFiles[0].getFileName();
     int firstFileFD = virtualFiles[0].getFD();
 
-    bool loadUsingVFS = system_info.need_fullpath || virtualFiles.size() > 1;
+    // A core's per-extension override wins over its global need_fullpath; see
+    // Environment::getNeedFullpathOverride.
+    bool needFullpath = Environment::getInstance()
+        .getNeedFullpathOverride(firstFilePath)
+        .value_or(system_info.need_fullpath);
+    bool loadUsingVFS = needFullpath || virtualFiles.size() > 1;
 
     struct retro_game_info game_info {};
     game_info.path = Utils::cloneToCString(firstFilePath);

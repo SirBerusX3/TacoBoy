@@ -20,6 +20,7 @@
 
 #define MODULE_NAME_CORE "Libretro Core"
 
+#include <optional>
 #include <vector>
 #include <string>
 #include <cstring>
@@ -83,8 +84,28 @@ public:
 
     void clearLoadedContent();
 
+    /**
+     * Whether a core's RETRO_ENVIRONMENT_SET_CONTENT_INFO_OVERRIDE changes need_fullpath for
+     * this file's extension, or no answer when it does not.
+     *
+     * A core may declare need_fullpath for its system as a whole and then override it per
+     * extension. FCEUmm does exactly this -- need_fullpath overall, but .nes/.fds/.unf/.unif
+     * loaded into memory -- and never checks a path it cannot open, so ignoring the override
+     * made every NES cartridge fail with "Error opening". RetroArch honours overrides, and
+     * cores are written against that.
+     */
+    std::optional<bool> getNeedFullpathOverride(const std::string &path) const;
+
 private:
     Environment() {}
+
+    struct ContentInfoOverride {
+        std::vector<std::string> extensions;
+        bool needFullpath;
+    };
+    std::vector<ContentInfoOverride> contentInfoOverrides;
+
+    bool environment_handle_set_content_info_override(const struct retro_system_content_info_override* overrides);
 
 public:
     void initialize(

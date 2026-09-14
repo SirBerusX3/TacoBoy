@@ -18,6 +18,27 @@ class RomHasherTest {
 
     private val headered = bytes(0x4C, 0x59, 0x4E, 0x58, 0x00) // "LYNX\0"
 
+    /** rc_hash_nes: an iNES "NES\x1a" or fwNES "FDS\x1a" header is 16 bytes and skipped. */
+    @Test
+    fun `iNES and fwNES headers skip 16 bytes`() {
+        assertEquals(16, RomHasher.nesHeaderSize(fileLength = 40976, leadingBytes = bytes(0x4E, 0x45, 0x53, 0x1A)))
+        assertEquals(16, RomHasher.nesHeaderSize(fileLength = 65516, leadingBytes = bytes(0x46, 0x44, 0x53, 0x1A)))
+    }
+
+    @Test
+    fun `a headerless NES file skips nothing`() {
+        assertEquals(0, RomHasher.nesHeaderSize(fileLength = 40960, leadingBytes = bytes(0x78, 0xA2, 0xFF, 0x9A)))
+        // "NES" without the 0x1A end-of-file byte is not a header.
+        assertEquals(0, RomHasher.nesHeaderSize(fileLength = 40976, leadingBytes = bytes(0x4E, 0x45, 0x53, 0x21)))
+    }
+
+    /** `buffer_size > 16`, as rcheevos checks: a file that is only a header is hashed whole. */
+    @Test
+    fun `a file no longer than the header skips nothing`() {
+        assertEquals(0, RomHasher.nesHeaderSize(fileLength = 16, leadingBytes = bytes(0x4E, 0x45, 0x53, 0x1A)))
+        assertEquals(0, RomHasher.nesHeaderSize(fileLength = 3, leadingBytes = bytes(0x4E, 0x45, 0x53)))
+    }
+
     @Test
     fun `headered file skips 64 bytes`() {
         assertEquals(64, RomHasher.lynxHeaderSize(fileLength = 128, leadingBytes = headered))

@@ -26,7 +26,7 @@
 #
 # WHY THE APK AND NOT jniLibs/
 #
-# jniLibs/ holds 7 of the 9 libraries that ship. liblibretrodroid.so is built here and
+# jniLibs/ holds 8 of the 10 libraries that ship. liblibretrodroid.so is built here and
 # libzstd-jni arrives from a Maven dependency; both exist only in the APK, so a jniLibs-only
 # check never looked at them. Checking what ships is the only check that means anything.
 #

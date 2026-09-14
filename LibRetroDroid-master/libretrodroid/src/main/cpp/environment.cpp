@@ -41,6 +41,9 @@ void Environment::initialize(
     callback_get_current_framebuffer = required_callback_get_current_framebuffer;
     systemDirectory = requiredSystemDirectory;
     savesDirectory = requiredSavesDirectory;
+    // Runs before the next core's retro_set_environment, which is where overrides arrive, so a
+    // previous core's can never apply to the next one.
+    contentInfoOverrides.clear();
 }
 
 void Environment::setGeometryChangedCallback(void (*callback)(unsigned width, unsigned height)) {
@@ -87,7 +90,12 @@ void Environment::setLoadedContent(const std::string &path, const void *data, si
     gameInfoExt.full_path = gameInfoExtFullPath.c_str();
     gameInfoExt.archive_path = nullptr;
     gameInfoExt.archive_file = nullptr;
-    gameInfoExt.dir = gameInfoExtDir.empty() ? nullptr : gameInfoExtDir.c_str();
+    // Never null: libretro.h allows a null `dir` only for content loaded from an archive, and
+    // cores copy it unchecked -- Genesis Plus GX strncpy()s it in retro_load_game and crashed
+    // on every cartridge once SET_CONTENT_INFO_OVERRIDE made it load from memory. A virtual
+    // filename has no directory, so empty is the true answer, and the one that core derived
+    // from the path before.
+    gameInfoExt.dir = gameInfoExtDir.c_str();
     gameInfoExt.name = gameInfoExtName.c_str();
     gameInfoExt.ext = gameInfoExtExt.c_str();
     gameInfoExt.meta = nullptr;
@@ -118,6 +126,7 @@ void Environment::clearLoadedContent() {
 }
 
 void Environment::deinitialize() {
+    contentInfoOverrides.clear();
     callback_get_current_framebuffer = nullptr;
     geometryChangedCallback = nullptr;
     hw_context_reset = nullptr;
@@ -257,6 +266,50 @@ bool Environment::environment_handle_set_hw_render(struct retro_hw_render_callba
     hw_render_callback->get_proc_address = &eglGetProcAddress;
 
     return true;
+}
+
+/** Copied, not kept as pointers: the array belongs to the core. Extensions are stored lower-case
+ *  and matched without case, as RetroArch matches valid_extensions. persistent_data is not
+ *  recorded because it needs no action here: the buffers LibretroDroid loads content into are
+ *  never freed while the core is loaded, so they persist either way. */
+bool Environment::environment_handle_set_content_info_override(const struct retro_system_content_info_override* overrides) {
+    contentInfoOverrides.clear();
+    if (overrides == nullptr) {
+        return true;
+    }
+    for (const auto* entry = overrides; entry->extensions != nullptr; ++entry) {
+        ContentInfoOverride parsed { {}, entry->need_fullpath };
+        std::string all(entry->extensions);
+        size_t start = 0;
+        while (start <= all.size()) {
+            size_t end = all.find('|', start);
+            if (end == std::string::npos) end = all.size();
+            std::string extension = all.substr(start, end - start);
+            std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+            if (!extension.empty()) parsed.extensions.push_back(extension);
+            start = end + 1;
+        }
+        LOGD("Content info override: %s need_fullpath=%d", entry->extensions, entry->need_fullpath ? 1 : 0);
+        contentInfoOverrides.push_back(std::move(parsed));
+    }
+    return true;
+}
+
+std::optional<bool> Environment::getNeedFullpathOverride(const std::string &path) const {
+    size_t dot = path.find_last_of('.');
+    if (dot == std::string::npos) {
+        return std::nullopt;
+    }
+    std::string extension = path.substr(dot + 1);
+    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+    for (const auto& entry : contentInfoOverrides) {
+        for (const auto& candidate : entry.extensions) {
+            if (candidate == extension) {
+                return entry.needFullpath;
+            }
+        }
+    }
+    return std::nullopt;
 }
 
 bool Environment::environment_handle_get_vfs_interface(struct retro_vfs_interface_info* vfsInterfaceInfo) {
@@ -449,6 +502,10 @@ bool Environment::handle_callback_environment(unsigned cmd, void *data) {
             LOGD("Called RETRO_ENVIRONMENT_GET_LANGUAGE");
             *((unsigned*) data) = language;
             return true;
+
+        case RETRO_ENVIRONMENT_SET_CONTENT_INFO_OVERRIDE:
+            LOGD("Called RETRO_ENVIRONMENT_SET_CONTENT_INFO_OVERRIDE");
+            return environment_handle_set_content_info_override(static_cast<const struct retro_system_content_info_override*>(data));
 
         case RETRO_ENVIRONMENT_GET_VFS_INTERFACE:
             LOGD("Called RETRO_ENVIRONMENT_GET_VFS_INTERFACE");

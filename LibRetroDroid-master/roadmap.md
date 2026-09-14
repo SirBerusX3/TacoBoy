@@ -12,7 +12,7 @@ what is still to do.
 | 2 – ROM and core management | v0.2 | Done, except NES (carried into Phase 5) |
 | 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
 | 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
-| **5 – Finish what's open** | **v0.3** | Started: 5.3 done |
+| **5 – Finish what's open** | **v0.3** | Started: 5.1 and 5.3 done |
 | **6 – Achievements done properly** | **v0.4** | 6.1 and 6.2 done; 6.3 not started |
 | **7 – Reach** | **v1.0** | Not started |
 
@@ -78,7 +78,7 @@ Done.
 
 **Goal:** close every gap the first roadmap left, and make room for the library to grow.
 
-### 5.1 NES
+### 5.1 NES — done 2026-09-14, on FCEUmm (cartridges only; .fds later)
 - Build a NES core from source at a recorded commit, with the 16 KB linker flags, following
   the recipe in the 2026-09-11 CHANGELOG entry. Candidates: **FCEUmm** (light, very widely
   used) or **Mesen** (more accurate, heavier). Choose on size, accuracy and whether it builds
