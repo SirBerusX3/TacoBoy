@@ -72,7 +72,7 @@ and loses nothing.
 | # | Requirement | Status | Evidence / note |
 |---|---|---|---|
 | E1 | Hardcore one tap away if not default | ⚠️ | Lives in Settings > Achievements — several taps in |
-| E2 | **Hardcore state visibly indicated during play** | ❌ | No on-screen indication of mode. The TURBO badge added 2026-08-24 is exactly the pattern this needs |
+| E2 | **Hardcore state visibly indicated during play** | ✅ | Since 2026-09-14. A red HARDCORE badge at the top centre for the whole of a hardcore session, following the running game's mode rather than the preference, so it cannot claim hardcore before the reset that makes it true. Seen on device |
 
 ## F. Transparency and legality
 
@@ -103,7 +103,7 @@ and loses nothing.
 1. ~~Guard `onLoadSlot` on hardcore mode — a real check, not a hidden button (B4, auto-fail)~~ — done 2026-09-14
 2. ~~Force a game reset when switching casual → hardcore (B7, auto-fail)~~ — done 2026-09-14,
    through the `EXTRA_FORCE_RELOAD_ROM_URI` reload path as planned
-3. On-screen hardcore indicator (E2) — same pattern as the TURBO badge
+3. ~~On-screen hardcore indicator (E2) — same pattern as the TURBO badge~~ — done 2026-09-14
 4. ~~Build the user agent from `versionName` + Android version + active core (C1)~~ — done 2026-09-14
 5. Resume-on-launch drops to casual (B6)
 6. Upstream links in the About licence list (F2)

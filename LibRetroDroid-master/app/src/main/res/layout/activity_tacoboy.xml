@@ -109,7 +109,9 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Toggled in Settings > General; only ever populated/shown when that's on (see
-         TacoBoyActivity.setupRetroView). A dev/perf-check overlay, not for every player. -->
+         TacoBoyActivity.setupRetroView). A dev/perf-check overlay, not for every player.
+         Invisible rather than gone when off, so its slot is always reserved and the badges
+         stacked under it keep one position whether the counter is showing or not. -->
     <TextView
         android:id="@+id/fps_overlay"
         android:layout_width="wrap_content"
@@ -117,18 +119,40 @@
         android:textColor="#B3FFFFFF"
         android:textSize="12sp"
         android:padding="10dp"
-        android:visibility="gone"
+        android:visibility="invisible"
         android:focusable="false"
         android:focusableInTouchMode="false"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Shown for the whole of a hardcore session (see TacoBoyActivity.updateHardcoreIndicator):
+         RetroAchievements requires hardcore to be visibly indicated during play (compliance
+         audit E2), and it is easy to forget it is on. Red, not TURBO's amber: this is a rule
+         set the game is under, not a momentary pad mode. Fixed for a session, so the TURBO
+         badge below it never jumps while playing. -->
+    <TextView
+        android:id="@+id/hardcore_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/hardcore_indicator"
+        android:textColor="#FFFF6E6E"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        app:layout_constraintTop_toBottomOf="@id/fps_overlay"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- Shown only while turbo is actually engaged (see TacoBoyActivity.setTurboEngaged).
-         Sits under the FPS overlay and is deliberately a different colour from it: one is a
-         readout, this is a mode the pad is currently in, and in Toggle mode it is the only
-         thing telling you so. goneMarginTop keeps it in the same place when the FPS overlay
-         is switched off, which is the normal case. -->
+         Sits under the FPS overlay's slot, and under HARDCORE when that is showing, and is
+         deliberately a different colour from both: the counter is a readout, this is a mode
+         the pad is currently in, and in Toggle mode it is the only thing telling you so. -->
     <TextView
         android:id="@+id/turbo_indicator"
         android:layout_width="wrap_content"
@@ -143,8 +167,7 @@
         android:visibility="gone"
         android:focusable="false"
         android:focusableInTouchMode="false"
-        app:layout_constraintTop_toBottomOf="@id/fps_overlay"
-        app:layout_goneMarginTop="34dp"
+        app:layout_constraintTop_toBottomOf="@id/hardcore_indicator"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

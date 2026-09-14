@@ -5,6 +5,41 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (HARDCORE badge during play — roadmap 6.1.3)
+
+**A hardcore game now says so on screen**: a red HARDCORE badge at the top centre, just
+below the Menu/Library row, for the whole session. RetroAchievements requires hardcore to be
+visibly indicated during play (compliance audit E2), and the practical reason is the one it
+was asked for: a mode that blocks loading your save states is easy to forget you turned on.
+
+**It follows the running game's mode, not the preference.** Between turning hardcore on in
+Settings and the reset that makes it true, the game is still casual, and a badge claiming
+otherwise would be the exact confusion it exists to prevent. So `updateHardcoreIndicator`
+reads `sessionHardcore`, and runs where that changes: at load, and on a mid-session drop to
+casual. Red rather than TURBO's amber, because this is a rule set the game is under, not a
+momentary pad mode.
+
+**The badges stack under a reserved FPS slot.** TURBO used to hold its position with a
+`goneMarginTop` standing in for the FPS counter's height, and a second badge breaks that: with
+the counter on and HARDCORE gone, TURBO would have been pushed down by both. The counter is
+now `invisible` rather than `gone` when off, so its slot is always there, HARDCORE sits under
+it and TURBO under HARDCORE. Nothing moves when the counter is toggled, and HARDCORE is fixed
+for a session, so TURBO never jumps while playing. With hardcore off, TURBO ends up where it
+was, give or take ~5dp (the reserved slot is the counter's real height; the old margin was 34dp).
+
+**Verified on the SM-S938B**, through the real UI over adb, on a PS1 game:
+  - Hardcore off: no badge.
+  - Hardcore turned on, back to the game: reloaded, badge showing, clear of both buttons
+    (checked in a screenshot).
+  - Show FPS on plus a Reset: HARDCORE's bounds identical to before, `[565,265][876,349]`,
+    directly under the counter's `[458,128][982,265]`.
+  - Hardcore turned off, back to the game: badge gone at once, no reload.
+
+  - TURBO stacked under HARDCORE: tested by the user with a bound turbo key, since none was
+    connected during the adb run. TURBO sits directly under HARDCORE with no overlap.
+
+Hardcore and Show FPS were both returned to off after the adb run.
+
 ## 2026-09-14 (Hardcore Mode: loading blocked in code, and a reset to enter it — roadmap 6.1.1–2)
 
 **Both hardcore auto-fails in the compliance audit are closed**: B4, loading save states

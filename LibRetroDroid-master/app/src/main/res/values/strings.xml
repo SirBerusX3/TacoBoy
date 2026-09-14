@@ -76,6 +76,7 @@
     <string name="about_link_unset">Not set yet</string>
     <string name="about_link_unset_toast">No link has been set for this build</string>
     <string name="turbo_indicator">TURBO</string>
+    <string name="hardcore_indicator">HARDCORE</string>
     <string name="controller_turbo_mode_label">Turbo (Rapid Fire)</string>
     <string name="controller_turbo_off">Off</string>
     <string name="controller_turbo_hold">Hold</string>

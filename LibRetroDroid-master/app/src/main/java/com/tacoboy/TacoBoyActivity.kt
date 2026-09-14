@@ -96,6 +96,7 @@ class TacoBoyActivity : AppCompatActivity() {
     private lateinit var hardcoreModeNote: View
     private lateinit var fpsOverlay: TextView
     private lateinit var turboIndicator: TextView
+    private lateinit var hardcoreIndicator: View
     private lateinit var fastForwardToggleButton: TextView
     private lateinit var achievementTrackingToggleButton: TextView
 
@@ -251,6 +252,7 @@ class TacoBoyActivity : AppCompatActivity() {
         hardcoreModeNote = findViewById(R.id.hardcore_mode_note)
         fpsOverlay = findViewById(R.id.fps_overlay)
         turboIndicator = findViewById(R.id.turbo_indicator)
+        hardcoreIndicator = findViewById(R.id.hardcore_indicator)
         findViewById<View>(R.id.reset_button).setOnClickListener { onResetClicked() }
         findViewById<View>(R.id.exit_to_library_button).setOnClickListener { onExitToLibraryClicked() }
         fastForwardToggleButton = findViewById(R.id.fast_forward_toggle_button)
@@ -291,6 +293,13 @@ class TacoBoyActivity : AppCompatActivity() {
         enforceHardcoreTransition()
     }
 
+    /** The HARDCORE badge follows the running game's mode, not the preference: between turning
+     *  hardcore on in Settings and the reset that makes it true, the game is still casual, and
+     *  a badge claiming otherwise would be exactly the confusion it exists to prevent. */
+    private fun updateHardcoreIndicator() {
+        hardcoreIndicator.visibility = if (sessionHardcore) View.VISIBLE else View.GONE
+    }
+
     /** Settings is reachable through the library while a game keeps running, and coming back
      *  lands here, so this is where a Hardcore Mode change made there meets the running game.
      *  Turning hardcore on reloads the game through the same path as Reset: RetroAchievements
@@ -302,6 +311,7 @@ class TacoBoyActivity : AppCompatActivity() {
             HardcoreTransition.NONE -> Unit
             HardcoreTransition.DROP_TO_CASUAL -> {
                 sessionHardcore = false
+                updateHardcoreIndicator()
                 TacoBoyLog.d(TAG, "Hardcore Mode turned off mid-session: casual from now")
             }
             HardcoreTransition.RESET_INTO_HARDCORE -> {
@@ -505,6 +515,7 @@ class TacoBoyActivity : AppCompatActivity() {
         currentCore = system.selectedCore(this)
         currentRomUri = uri
         sessionHardcore = TacoBoyPrefs.isHardcoreModeEnabled(this)
+        updateHardcoreIndicator()
         TacoBoyPrefs.beginRomLoad(this, uri.toString())
         TacoBoyPrefs.recordRomPlayed(this, uri.toString())
         setupRetroView(system, VirtualFile(displayName, pfd))
