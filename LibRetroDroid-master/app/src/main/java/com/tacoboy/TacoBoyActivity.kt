@@ -580,6 +580,8 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
             updateSlotLabels()
             updateFastForwardToggleLabel()
             updateAchievementTrackingToggle()
+            // Open at the save slots, not wherever it was last scrolled to.
+            quickMenuPanel.scrollTo(0, 0)
             quickMenuPanel.visibility = View.VISIBLE
         }
     }
