@@ -33,10 +33,11 @@ private const val SCALE_SLIDER_STEP = 0.05f
  * given a copy to the corresponding source, and the About tab is where that link lives. Blank
  * renders as "Not set yet" -- fill this in before handing a build to anyone.
  *
- * This is deliberately the only outbound link in the app. A donation link lives on the source
- * repository instead: Genesis Plus GX's terms forbid use "in a commercial product or
- * activity", and a link in a README can be reworded or removed at will, where one baked into
- * an APK is already in every copy that has been handed out.
+ * No donation link sits beside it, or anywhere in the app: that lives on the source repository
+ * instead. Genesis Plus GX's terms forbid use "in a commercial product or activity", and a
+ * link in a README can be reworded or removed at will, where one baked into an APK is already
+ * in every copy that has been handed out. The only other outbound links are the licence list's
+ * upstream repositories.
  */
 // GPL-3 obliges anyone handed a binary to be able to get its source, and this link is
 // how TacoBoy discharges that. It must point at a repository the recipient can
@@ -44,25 +45,34 @@ private const val SCALE_SLIDER_STEP = 0.05f
 // build passed to one person and not good enough for a public release.
 private const val SOURCE_URL = "https://github.com/SirBerusX3/TacoBoy"
 
+/** One bundled component: what it is, the licence it is under, and where its source lives. */
+private data class Licence(val component: String, val licence: String, val url: String)
+
 /**
  * Every third-party component shipped in the APK, with the licence it is actually under --
  * each one read from that project's own source rather than assumed, 2026-08-24.
+ *
+ * Each links the repository the shipped build actually came from, which for the cores is
+ * libretro's port rather than the original project: that is where the corresponding source
+ * is, and the table in CHANGELOG.md's 2026-09-11 entry gives the commit of each. RetroAchievements
+ * asks for "relevant upstream links" beside every shipped core (compliance audit F2). Every URL
+ * was checked to load, with no redirect, on 2026-09-14.
  *
  * The two "non-commercial" entries are the load-bearing ones: Snes9x is "freeware for PERSONAL
  * USE only" and Genesis Plus GX's terms say redistributions "may not be sold, nor may they be
  * used in a commercial product or activity". They are why this app is free and must stay free.
  */
 private val LICENCES = listOf(
-    "LibretroDroid (app base)" to "GPL-3.0",
-    "mGBA — Game Boy Advance" to "MPL-2.0",
-    "Gambatte — Game Boy / Color" to "GPL-2.0",
-    "Snes9x — SNES" to "Non-commercial",
-    "Genesis Plus GX — Genesis / SMS / GG / SG-1000" to "Non-commercial",
-    "Handy — Atari Lynx" to "zlib-style",
-    "Beetle PSX HW — PlayStation" to "GPL-2.0",
-    "SwanStation — PlayStation" to "GPL-3.0",
-    "rcheevos (RetroAchievements)" to "MIT",
-    "Oboe (audio)" to "Apache-2.0",
+    Licence("LibretroDroid (app base)", "GPL-3.0", "https://github.com/Swordfish90/LibretroDroid"),
+    Licence("mGBA — Game Boy Advance", "MPL-2.0", "https://github.com/libretro/mgba"),
+    Licence("Gambatte — Game Boy / Color", "GPL-2.0", "https://github.com/libretro/gambatte-libretro"),
+    Licence("Snes9x — SNES", "Non-commercial", "https://github.com/libretro/snes9x"),
+    Licence("Genesis Plus GX — Genesis / SMS / GG / SG-1000", "Non-commercial", "https://github.com/libretro/Genesis-Plus-GX"),
+    Licence("Handy — Atari Lynx", "zlib-style", "https://github.com/libretro/libretro-handy"),
+    Licence("Beetle PSX HW — PlayStation", "GPL-2.0", "https://github.com/libretro/beetle-psx-libretro"),
+    Licence("SwanStation — PlayStation", "GPL-3.0", "https://github.com/libretro/swanstation"),
+    Licence("rcheevos (RetroAchievements)", "MIT", "https://github.com/RetroAchievements/rcheevos"),
+    Licence("Oboe (audio)", "Apache-2.0", "https://github.com/google/oboe"),
 )
 
 
@@ -1230,9 +1240,7 @@ class SettingsActivity : AppCompatActivity() {
 
         container.addView(standaloneNote(
             R.string.about_licences_label, R.string.about_licences_note))
-        LICENCES.forEach { (component, licence) ->
-            container.addView(readOnlyRow(component, licence))
-        }
+        LICENCES.forEach { container.addView(licenceRow(it)) }
 
         container.addView(standaloneNote(
             R.string.about_diagnostics_label, R.string.about_diagnostics_note))
@@ -1277,6 +1285,26 @@ class SettingsActivity : AppCompatActivity() {
         return row
     }
 
+    /** The component and its licence, as a read-only row, with its repository underneath as a
+     *  link. Shown without the scheme -- "github.com/libretro/snes9x" -- since every one is
+     *  https and the full URL would be cut off on a phone. */
+    private fun licenceRow(entry: Licence): LinearLayout {
+        val block = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        block.addView(readOnlyRow(entry.component, entry.licence).apply { setPadding(0, 12, 0, 0) })
+        block.addView(TextView(this).apply {
+            text = entry.url.removePrefix("https://")
+            setTextColor(0xFF7FB3D5.toInt())
+            textSize = 13f
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
+            isClickable = true
+            isFocusable = true
+            setPadding(0, 4, 0, 12)
+            setOnClickListener { openLink(entry.url) }
+        })
+        return block
+    }
+
     /** Opens [url] in a browser. A blank url renders as "Not set yet" rather than being hidden,
      *  so an unfinished build says so instead of silently omitting something it owes. */
     private fun linkRow(label: String, url: String): LinearLayout {
@@ -1302,25 +1330,27 @@ class SettingsActivity : AppCompatActivity() {
             isFocusable = true
             setPadding(16, 8, 0, 8)
         }
-        value.setOnClickListener {
-            if (url.isBlank()) {
-                Toast.makeText(this, R.string.about_link_unset_toast, Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            try {
-                startActivity(
-                    android.content.Intent(
-                        android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse(url)
-                    )
-                )
-            } catch (e: Exception) {
-                TacoBoyLog.e("SettingsActivity", "Could not open link", e)
-                Toast.makeText(this, R.string.about_link_unset_toast, Toast.LENGTH_SHORT).show()
-            }
-        }
+        value.setOnClickListener { openLink(url) }
         row.addView(value)
         return row
+    }
+
+    private fun openLink(url: String) {
+        if (url.isBlank()) {
+            Toast.makeText(this, R.string.about_link_unset_toast, Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            startActivity(
+                android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse(url)
+                )
+            )
+        } catch (e: Exception) {
+            TacoBoyLog.e("SettingsActivity", "Could not open link", e)
+            Toast.makeText(this, R.string.about_link_unset_toast, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun versionSummary(): String {

@@ -5,6 +5,31 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (upstream links in the licence list — roadmap 6.1.6)
+
+**Every entry in Settings > About's licence list now links its source repository**, shown
+under the component as `github.com/libretro/snes9x` and opening in the browser when tapped.
+RetroAchievements asks for a listing of every shipped core, its licence "and any relevant
+upstream links" (compliance audit F2); the list had the first two since 2026-08-24. That
+completes roadmap 6.1.
+
+**Linked to where each build came from, not the original project.** For the cores that is
+libretro's port -- `libretro/snes9x`, not snes9xgit -- because that is where the source of the
+shipped binary actually lives, and the 2026-09-11 rebuild table gives the commit in each. The
+libretro repositories credit their original projects in turn. LibretroDroid, rcheevos and Oboe
+link their own repositories.
+
+All ten URLs were fetched and returned 200 with no redirect before going in, so none points at
+a renamed or moved repository. The list became a small `Licence` data class, and the browser
+launch moved out of `linkRow` into `openLink`, which both now use. The source-link comment
+called that the app's "only outbound link", which had been about keeping donation links out of
+the APK; it now says so, and names these as the other links.
+
+**Verified on the SM-S938B:** all ten rows seen in the About tab with licence and link, the
+layout checked in a screenshot, and the Oboe link tapped: Firefox opened
+`https://github.com/google/oboe`, and Back returned to Settings. The other nine were checked by
+URL, not tapped.
+
 ## 2026-09-14 (no resume on launch in hardcore — roadmap 6.1.5)
 
 **With Hardcore Mode on, TacoBoy no longer resumes the last game on launch.** It shows the

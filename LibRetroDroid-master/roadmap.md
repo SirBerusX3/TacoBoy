@@ -13,7 +13,7 @@ what is still to do.
 | 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
 | 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
 | **5 – Finish what's open** | **v0.3** | Not started |
-| **6 – Achievements done properly** | **v0.4** | Started: 6.1 items 1–5 done |
+| **6 – Achievements done properly** | **v0.4** | 6.1 done; 6.2 not started |
 | **7 – Reach** | **v1.0** | Not started |
 
 ## Principles
@@ -144,14 +144,14 @@ battery measured; 16 KB confirmed on hardware; help screen in place.
 **Goal:** make achievements correct and clear, and decide on hardcore with the facts in hand.
 The item numbers and section references are from `RETROACHIEVEMENTS-COMPLIANCE.md`.
 
-### 6.1 Cheap fixes (hours each, worth doing regardless of hardcore)
+### 6.1 Cheap fixes (hours each, worth doing regardless of hardcore) — done 2026-09-14
 1. ~~Guard `onLoadSlot` on hardcore mode — a real check, not a hidden button (B4).~~ Done 2026-09-14.
 2. ~~Force a game reset when switching casual to hardcore (B7), using the existing
    `EXTRA_FORCE_RELOAD_ROM_URI` reload path.~~ Done 2026-09-14.
 3. ~~On-screen hardcore indicator (E2), same pattern as the TURBO badge.~~ Done 2026-09-14.
 4. ~~Add the active core to the user agent (C1).~~ Done 2026-09-14.
 5. ~~Resume-on-launch drops to casual (B6).~~ Done 2026-09-14: in hardcore, games do not resume on launch.
-6. Upstream links in the About licence list (F2).
+6. ~~Upstream links in the About licence list (F2).~~ Done 2026-09-14.
 
 ### 6.2 Medium
 7. Offline unlock queue with retry (A4) — an unlock earned without signal is not lost.

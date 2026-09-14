@@ -79,7 +79,7 @@ and loses nothing.
 | # | Requirement | Status | Evidence / note |
 |---|---|---|---|
 | F1 | Monetization disclosure / features matrix | N/A | No monetization, ads or IAP |
-| F2 | Published listing of every shipped FOSS core + licence | ⚠️ | **Built 2026-08-24** — Settings > About lists all ten components and their licences. Missing the "relevant upstream links" the requirement also asks for |
+| F2 | Published listing of every shipped FOSS core + licence | ✅ | Settings > About lists all ten components and their licences (2026-08-24), and since 2026-09-14 each links the repository its shipped build came from. Each URL checked to load; one tapped on device and opened in the browser |
 | F3 | No non-commercial cores alongside commercialization | ✅ | Snes9x and Genesis Plus GX are non-commercial; TacoBoy has no monetization. The decision to keep the donation link on the repo rather than in the app preserves this — see CHANGELOG 2026-08-24 |
 | F4 | GPL/LGPL/MPL obligations satisfied | ⚠️ | About tab has a Source Code row, but `SOURCE_URL` is blank ("Not set yet") until the repo is published |
 | F5 | **Privacy policy** (retention, server locations, GDPR) | ❌ | None exists. Required, and section G auto-fails a policy with placeholders or contradictions — so it must be written properly or not at all |
@@ -106,7 +106,7 @@ and loses nothing.
 3. ~~On-screen hardcore indicator (E2) — same pattern as the TURBO badge~~ — done 2026-09-14
 4. ~~Build the user agent from `versionName` + Android version + active core (C1)~~ — done 2026-09-14
 5. ~~Resume-on-launch drops to casual (B6)~~ — done 2026-09-14, as no resume in hardcore
-6. Upstream links in the About licence list (F2)
+6. ~~Upstream links in the About licence list (F2)~~ — done 2026-09-14
 
 **Medium:**
 7. Offline unlock queueing with retry (A4)
