@@ -48,6 +48,13 @@ object RomHasher {
 
     /** [system] comes from the caller, who always knows it: a .chd alone could be PS1 or Sega CD. */
     fun raHash(context: Context, rom: RomLibrary.RomEntry, system: GameSystem): String? {
+        // rcheevos hashes a playlist's first disc (rc_hash_generate_from_file's m3u handling), and
+        // RA's game entries are keyed by that disc.
+        if (MultiDiscGame.isPlaylist(rom.displayName)) {
+            val first = (MultiDiscGame.resolve(context, rom.uri) as? MultiDiscGame.Resolution.Found)
+                ?.discs?.firstOrNull() ?: return null
+            return raHash(context, RomLibrary.RomEntry(first.name, first.uri), system)
+        }
         if (system == GameSystem.PS1) return chdHash(context, rom, "PS1") { Ps1Hasher.hash(it) }
         if (system == GameSystem.SEGA_CD) return chdHash(context, rom, "Sega CD") { segaCdHash(ChdDisc.open(it)?.readSector(0)) }
 

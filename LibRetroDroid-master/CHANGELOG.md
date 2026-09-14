@@ -5,6 +5,91 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (multi-disc games: playlists and Change Disc — roadmap 5.7)
+
+**Multi-disc PS1 and Sega CD games work**, on all three disc cores. Each of the user's is a folder
+holding its discs and an `.m3u` playlist, the standard layout. The library now lists the playlist
+as the game, the game loads every disc, and the quick menu has **Change Disc**.
+
+### Why the user's own playlists could not simply be passed through
+
+  - **Their lines end `\r\r\n`.** Genesis Plus GX (`b7e79b3`, `libretro.c`) strips one `\r`, so
+    every disc name kept another and matched no file. Beetle PSX trims whitespace and would have
+    coped. The format of the files was read off the phone byte for byte.
+  - **Cores join each entry onto the playlist's directory.** Genesis Plus GX formats
+    `"%s%c%s", g_rom_dir, '/', entry`, and Beetle PSX (`d97afa8`, `ReadM3U_r`) joins onto
+    `MDFN_GetFilePathComponents`' directory. Under a bare virtual name like "Game.m3u" they would
+    look for "/Disc 1.chd" and "./Disc 1.chd", and LibretroDroid's VFS matches names exactly. Both
+    read the playlist through the frontend VFS, which is what makes serving it virtually possible.
+
+So `MultiDiscGame` reads the playlist (`M3uPlaylist.parse` drops every `\r`, trailing whitespace,
+blanks and `#` comments), finds each disc beside it by querying the playlist's parent folder
+through SAF, writes a clean LF playlist to the app cache, and hands the core that playlist and
+every disc under one virtual directory, `/tacoboy-discs`, where the cores' own joins land exactly
+on the discs' virtual names. A playlist naming a disc that is not there is refused before loading,
+with its own message, rather than failing when the game asks for the missing disc. For RA, a
+playlist is hashed by its first disc, as rcheevos does.
+
+### The library
+
+`RomLibrary`'s scan reads each folder's playlists and does not list the discs they name, so
+Final Fantasy VII is one entry, not four. A disc no playlist names, like Gran Turismo 2's combined
+disc, still lists. `.m3u` joins `.chd` as shared by PS1 and Sega CD, settled by folder.
+`RomLibraryCache` gained a format number, so caches from before, which list every disc, are
+rescanned rather than shown.
+
+### Change Disc, and the crash it found in LibretroDroid
+
+The entry appears only for a game with more than one disc, lists the discs by the playlist's own
+filenames ("Disc 2", "Disc 1 (Allies)" for Red Alert), checks the current one, and swaps through
+the core's disc control. It sits straight under the save slots: first placed beside Reset, it was
+below what the scrolling menu showed on this phone.
+
+**SwanStation crashed the moment the dialog opened**: the process died with SIGSEGV and no
+tombstone, since SwanStation installs its own SIGSEGV handler. `RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE`
+kept the pointer the core passed. Beetle and Genesis Plus GX pass a static struct, so it stayed
+valid. SwanStation builds its struct on the stack, so the pointer dangled as soon as the call
+returned, and the first `get_image_index` jumped through freed memory. `Environment` now copies the
+struct, as RetroArch does. The log line for this case had also said "SET_ROTATION"; it names the
+right call now.
+
+### Verified on the SM-S938B
+
+  - Library: PS1 and Sega CD rescanned on the new cache format; playlists listed, their discs not.
+  - **Beetle PSX**: Final Fantasy VII loaded all three discs from `/tacoboy-discs/…`; Change Disc
+    listed Disc 1–3 with Disc 1 checked, swapped to Disc 2, and reopening showed the core reporting
+    Disc 2. Re-checked after the copy fix: swapped to Disc 3, no crash. Final Fantasy VIII's four
+    discs loaded too.
+  - **Genesis Plus GX**: Night Trap loaded from its playlist and swapped to Disc 2, reported by the
+    core. The user had added its missing Disc 1 meanwhile, so the missing-disc refusal was not
+    exercised on the phone.
+  - **SwanStation**, switched to temporarily and switched back after: Final Fantasy VIII's playlist
+    loaded ("Loaded 4 paths from m3u"), RA identified the game by its first disc (155
+    achievements), and after the copy fix Change Disc swapped to Disc 3 with the core reporting it.
+  - A sweep started one game on each of the twelve systems, with no fatal signal or load failure.
+
+### Reset boots the disc in the tray, found with Red Alert
+
+The user found a game the first version could not handle. Command & Conquer: Red Alert's two
+discs are separate campaigns, Allied and Soviet, each booted on its own rather than swapped
+mid-game. Change Disc switched to Soviet fine, but TacoBoy's Reset reloads from scratch, a reload
+always booted the playlist's first disc, and so Soviet could never be started. The user's
+workaround was moving the discs out of the playlist folder; chosen instead: behave like a real
+console, which boots whatever disc is in the tray.
+
+Changing disc now remembers the choice for that game (`TacoBoyPrefs` `inserted_disc:`), and every
+load puts that disc first in the playlist TacoBoy gives the core, so the core boots it: on Reset,
+on the next launch, and on resume. The Change Disc list stays in the user's playlist order and
+translates to the core's order behind it. A true multi-disc game follows the same rule, as a
+console would: switched to disc 2 and relaunched, it boots disc 2.
+
+Verified on the SM-S938B with Beetle PSX: switched Red Alert to Disc 2 (Soviet), pressed Reset;
+the cached playlist began with the Soviet disc, the core loaded it first, and Change Disc showed
+Disc 2 (Soviet) checked, in the playlist's own order.
+
+The cached playlist, and the remembered disc, are new things TacoBoy stores, so the privacy
+policy's storage table records both. 4 new tests, 80 passing.
+
 ## 2026-09-14 (Sega CD / Mega-CD — roadmap 5.2)
 
 **TacoBoy plays Sega CD discs**, its twelfth system, on the Genesis Plus GX binary it already

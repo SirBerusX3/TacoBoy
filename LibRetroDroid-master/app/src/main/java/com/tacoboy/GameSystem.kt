@@ -350,6 +350,8 @@ enum class GameSystem(
          *  and nothing in the name says which. */
         private val SHARED_EXTENSIONS: Map<String, List<GameSystem>> = mapOf(
             "chd" to listOf(PS1, SEGA_CD),
+            // A multi-disc game's playlist; see MultiDiscGame.
+            "m3u" to listOf(PS1, SEGA_CD),
         )
 
         val SUPPORTED_EXTENSIONS: Set<String> = EXTENSION_MAP.keys + SHARED_EXTENSIONS.keys

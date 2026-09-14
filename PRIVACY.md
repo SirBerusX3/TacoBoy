@@ -40,7 +40,7 @@ move to a new phone, may still copy it across.
 | Data | What it is | How long it is kept |
 |---|---|---|
 | Settings | Your choices in Settings, controller bindings and presets, on-screen layout | Until you change or reset them, clear the app's data, or uninstall |
-| Library | The ROM folders you picked, file names of your games, custom titles, hidden games, when each game was last played and how many times | Until you clear the app's data or uninstall. Picking a different folder replaces the list of games, but not play history |
+| Library | The ROM folders you picked, file names of your games, custom titles, hidden games, when each game was last played and how many times, and for a multi-disc game which disc you last switched to | Until you clear the app's data or uninstall. Picking a different folder replaces the list of games, but not play history |
 | Game saves | In-game (SRAM) saves and save states | Until you clear the app's data or uninstall. Saving again replaces a game's save, or that slot's state |
 | BIOS files | BIOS files you import, copied into the app | Until you delete them in the BIOS screen, clear the app's data, or uninstall |
 | Box art | Cover images downloaded for your games | Until you clear the app's data or uninstall. Resetting a game's box art replaces it |
@@ -48,6 +48,7 @@ move to a new phone, may still copy it across.
 | Saved achievement data | For games you have played or checked while logged in to live tracking: the game's achievement list, which ones you have earned, and the conditions used to detect them. It lets achievements work offline | Until the next time that game is played or checked online (it is then replaced), you clear the app's data, or you uninstall. Logging out does not delete it |
 | Unsent achievement unlocks | Achievements earned while RetroAchievements could not be reached: your username, the achievement's ID, the game's hash, when you earned it, and the emulator core that was running. No password or token | Until RetroAchievements accepts or refuses them, you clear the app's data, or you uninstall. Logging out keeps them, so they are sent when you log in again |
 | Achievement images | Badge and game icons shown in achievement lists | In the app's cache, which Android may clear at any time |
+| Disc playlist | For a multi-disc game, a copy of its .m3u playlist listing its disc filenames, which the emulator core reads | In the app's cache: replaced each time a multi-disc game starts, and Android may clear it at any time |
 | Crash history | Details of the last 20 crashes: the time, the technical error, and where known the game's file name and location on your phone, its system and the emulator core | Until you tap Clear Crash History in Settings, clear the app's data, or uninstall |
 | App log | Recent technical messages, at most 500 lines, which can include game names | In memory only, and gone when the app closes. The same messages also go to Android's system log, which other apps cannot read |
 

@@ -109,6 +109,10 @@
     <string name="quick_menu_save">Save</string>
     <string name="quick_menu_load">Load</string>
     <string name="quick_menu_reset">Reset</string>
+    <string name="quick_menu_change_disc">Change Disc</string>
+    <string name="quick_menu_change_disc_title">Change disc</string>
+    <string name="quick_menu_change_disc_done">Switched to %1$s</string>
+    <string name="rom_picker_disc_missing">A disc this game\'s playlist lists isn\'t in its folder, so it can\'t be started. Check the .m3u file against the discs beside it.</string>
     <string name="quick_menu_exit_to_library">Exit to Library</string>
     <string name="quick_menu_hardcore_note">Hardcore Mode: you can still save states, but not load them, per RetroAchievements\' rules. Your SRAM/cart save is unaffected. Turn this off in Settings → Achievements.</string>
     <string name="quick_menu_fast_forward_off">Fast Forward: Off</string>

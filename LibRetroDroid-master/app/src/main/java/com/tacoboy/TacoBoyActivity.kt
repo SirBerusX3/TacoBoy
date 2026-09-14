@@ -100,6 +100,7 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
     private lateinit var fastForwardToggleButton: TextView
     private lateinit var achievementTrackingToggleButton: TextView
     private lateinit var achievementsButton: View
+    private lateinit var changeDiscButton: TextView
     private lateinit var achievementProgressIndicator: TextView
     private lateinit var achievementChallengeIndicator: TextView
 
@@ -110,6 +111,12 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
     // the game already running, only the next one loaded.
     private var currentCore: CoreDefinition? = null
     private var currentRomUri: Uri? = null
+    // The running game's discs in playlist order, or empty for a single-file game. Drives the
+    // quick menu's Change Disc entry.
+    private var currentDiscNames: List<String> = emptyList()
+    // The same discs in the user's playlist order, for showing them. currentDiscNames is the order
+    // the core has them in, which starts from the disc remembered for this game.
+    private var currentDiscPlaylistOrder: List<String> = emptyList()
     private var sessionStartTimeMs: Long = 0L
 
     // The running game's own Hardcore Mode, taken from the preference when it loads. Not the
@@ -263,6 +270,8 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
         findViewById<View>(R.id.info_button).setOnClickListener { onInfoClicked() }
         achievementTrackingToggleButton = findViewById(R.id.achievement_tracking_toggle_button)
         achievementsButton = findViewById(R.id.achievements_button)
+        changeDiscButton = findViewById(R.id.change_disc_button)
+        changeDiscButton.setOnClickListener { onChangeDiscClicked() }
         achievementsButton.setOnClickListener { onAchievementsClicked() }
         achievementProgressIndicator = findViewById(R.id.achievement_progress_indicator)
         achievementChallengeIndicator = findViewById(R.id.achievement_challenge_indicator)
@@ -511,9 +520,34 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
         } ?: return false
         val system = GameSystem.forRom(this, uri, displayName) ?: return false
 
-        val pfd = try {
-            contentResolver.openFileDescriptor(uri, "r")
+        // A playlist loads every disc it lists, or nothing: a game that asks for disc 2 and
+        // cannot have it is worse than a clear refusal now.
+        val discs = if (MultiDiscGame.isPlaylist(displayName)) {
+            when (val resolution = MultiDiscGame.resolve(this, uri)) {
+                is MultiDiscGame.Resolution.Found -> resolution.discs
+                is MultiDiscGame.Resolution.MissingDiscs -> {
+                    TacoBoyLog.e(TAG, "Refusing to load $displayName: missing ${resolution.names}")
+                    lastLoadFailureMessage = R.string.rom_picker_disc_missing
+                    return false
+                }
+                MultiDiscGame.Resolution.Unreadable -> return false
+            }
+        } else {
+            emptyList()
+        }
+
+        // Boots from the disc last switched to for this game, if any; see onChangeDiscClicked.
+        val insertedDisc = TacoBoyPrefs.getInsertedDisc(this, uri.toString())
+        val coreDiscs = discs.sortedByDescending { it.name == insertedDisc }
+
+        val gameFiles = try {
+            if (coreDiscs.isNotEmpty()) {
+                MultiDiscGame.virtualFiles(this, displayName, coreDiscs)
+            } else {
+                contentResolver.openFileDescriptor(uri, "r")?.let { listOf(VirtualFile(displayName, it)) }
+            }
         } catch (e: Exception) {
+            TacoBoyLog.e(TAG, "Could not open $displayName", e)
             null
         } ?: return false
 
@@ -532,11 +566,13 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
         currentGameSystem = system
         currentCore = system.selectedCore(this)
         currentRomUri = uri
+        currentDiscNames = coreDiscs.map { it.name }
+        currentDiscPlaylistOrder = discs.map { it.name }
         sessionHardcore = TacoBoyPrefs.isHardcoreModeEnabled(this)
         updateHardcoreIndicator()
         TacoBoyPrefs.beginRomLoad(this, uri.toString())
         TacoBoyPrefs.recordRomPlayed(this, uri.toString())
-        setupRetroView(system, VirtualFile(displayName, pfd))
+        setupRetroView(system, gameFiles)
         menuButton.visibility = View.VISIBLE
         touchControlsButton.visibility = View.VISIBLE
         setupTouchControls(system)
@@ -580,6 +616,7 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
             updateSlotLabels()
             updateFastForwardToggleLabel()
             updateAchievementTrackingToggle()
+            changeDiscButton.visibility = if (currentDiscNames.size > 1) View.VISIBLE else View.GONE
             // Open at the save slots, not wherever it was last scrolled to.
             quickMenuPanel.scrollTo(0, 0)
             quickMenuPanel.visibility = View.VISIBLE
@@ -724,6 +761,44 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
         quickMenuPanel.visibility = View.GONE
     }
 
+    /**
+     * Lists the running game's discs in the playlist's own order, the current one checked, and
+     * swaps to the one picked through the core's disc control (eject, change image, close), which
+     * is what a game asking for the next disc is waiting for. Labels come from the filenames.
+     *
+     * The choice is also remembered for the game, and the next load boots from it: Reset reloads
+     * from scratch, and some multi-disc games are really separate games per disc. Red Alert's
+     * Allied and Soviet discs each boot their own campaign, so without this Reset always went back
+     * to Allied and Soviet could not be started at all. A real console boots whatever disc is in
+     * the tray, and so does this.
+     */
+    private fun onChangeDiscClicked() {
+        quickMenuPanel.visibility = View.GONE
+        val view = retroView ?: return
+        val romUri = currentRomUri ?: return
+        if (currentDiscNames.size < 2) return
+        val coreIndex = try { view.getCurrentDisk() } catch (e: Exception) { 0 }
+        val currentName = currentDiscNames.getOrNull(coreIndex)
+        // The core numbers discs in the order TacoBoy's playlist gave them, which starts from the
+        // remembered disc; the list is shown in the user's own playlist order instead.
+        val labels = currentDiscPlaylistOrder.mapIndexed { i, name -> M3uPlaylist.discLabel(name, i) }.toTypedArray()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.quick_menu_change_disc_title)
+            .setSingleChoiceItems(labels, currentDiscPlaylistOrder.indexOf(currentName)) { dialog, which ->
+                dialog.dismiss()
+                val picked = currentDiscPlaylistOrder[which]
+                if (picked != currentName) {
+                    view.changeDisk(currentDiscNames.indexOf(picked))
+                    TacoBoyPrefs.setInsertedDisc(this, romUri.toString(), picked)
+                    TacoBoyLog.d(TAG, "Changed to $picked")
+                    Toast.makeText(this, getString(R.string.quick_menu_change_disc_done, labels[which]), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .show()
+        // Above the clamp, like every other dialog.
+        dialog.window?.setGravity(android.view.Gravity.TOP)
+    }
+
     /** A plain retroView.reset() (retro_reset(), the console's own reset button) doesn't
      *  re-read core-option/renderer variables -- those are only applied once, in
      *  setupRetroView, when a game is freshly loaded. Since a PS1 reset already reboots
@@ -747,7 +822,7 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
     }
 
     /** Only ever called with no existing retroView — switching an active game recreates the Activity instead (see libraryLauncher). */
-    private fun setupRetroView(system: GameSystem, gameFile: VirtualFile) {
+    private fun setupRetroView(system: GameSystem, gameFiles: List<VirtualFile>) {
         sessionStartTimeMs = System.currentTimeMillis()
         val core = currentCore ?: system.selectedCore(this)
         // BIOS-needing systems get a dedicated staging directory containing only the one
@@ -763,7 +838,7 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
         }
         val data = GLRetroViewData(this).apply {
             coreFilePath = core.fileName
-            gameVirtualFiles = listOf(gameFile)
+            gameVirtualFiles = gameFiles
             systemDirectory = systemDir
             savesDirectory = filesDir.absolutePath
             shader = TacoBoyPrefs.getShaderChoice(this@TacoBoyActivity, system).toConfig()

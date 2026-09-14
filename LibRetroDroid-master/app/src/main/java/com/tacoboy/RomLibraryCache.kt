@@ -17,6 +17,10 @@ import java.io.File
 object RomLibraryCache {
     private const val TAG = "TacoBoy.RomLibraryCache"
 
+    /** Raised whenever what a scan produces changes, so an older cache is rescanned rather than
+     *  shown. 2: playlists stand in for their discs (2026-09-14). A cache without one is 1. */
+    private const val FORMAT = 2
+
     fun load(context: Context, system: GameSystem, folderUri: Uri): List<RomLibrary.RomEntry>? {
         val file = cacheFile(context, system)
         if (!file.exists()) return null
@@ -24,6 +28,7 @@ object RomLibraryCache {
         return try {
             val json = JSONObject(file.readText())
             if (json.optString("folderUri") != folderUri.toString()) return null
+            if (json.optInt("format", 1) != FORMAT) return null
 
             val array = json.getJSONArray("roms")
             (0 until array.length()).map { i ->
@@ -48,6 +53,7 @@ object RomLibraryCache {
         }
         val json = JSONObject().apply {
             put("folderUri", folderUri.toString())
+            put("format", FORMAT)
             put("roms", array)
         }
 

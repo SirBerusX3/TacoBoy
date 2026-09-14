@@ -458,8 +458,13 @@ bool Environment::handle_callback_environment(unsigned cmd, void *data) {
         }
 
         case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE: {
-            LOGD("Called RETRO_ENVIRONMENT_SET_ROTATION");
-            retro_disk_control_callback = static_cast<struct retro_disk_control_callback*>(data);
+            LOGD("Called RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE");
+            if (data == nullptr) {
+                retro_disk_control_callback = nullptr;
+                return true;
+            }
+            retroDiskControlCallbackCopy = *static_cast<const struct retro_disk_control_callback*>(data);
+            retro_disk_control_callback = &retroDiskControlCallbackCopy;
             return true;
         }
 

@@ -40,7 +40,8 @@ actually ships in `jniLibs` — nothing is half-wired.
 PS1 is the only system with a choice of core, switchable in Settings. Lynx runs without
 its boot ROM (Handy falls back to an internal HLE one); PS1 and Sega CD genuinely cannot boot
 without a real BIOS, and the library screen distinguishes those two cases rather than showing
-one generic warning. Sega CD takes one BIOS per region, recognised from the file's own header
+one generic warning. Multi-disc PS1 and Sega CD games load from the `.m3u` playlist beside
+their discs, show in the library as one game, and change disc from the in-game menu. Sega CD takes one BIOS per region, recognised from the file's own header
 whatever it is called, and uses the one matching each disc. PS1 and Sega CD discs are both
 `.chd`, so each system's discs need their own ROM folder. See [BIOSregion.md](BIOSregion.md) for the PS1 filename-to-region map.
 

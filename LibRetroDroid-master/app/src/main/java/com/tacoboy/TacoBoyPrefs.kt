@@ -42,6 +42,7 @@ object TacoBoyPrefs {
     private const val KEY_BOUNDARY_HINT_SHOWN = "boundary_hint_shown"
     private const val KEY_LAST_PLAYED_PREFIX = "last_played:"
     private const val KEY_PLAY_COUNT_PREFIX = "play_count:"
+    private const val KEY_INSERTED_DISC_PREFIX = "inserted_disc:"
     private const val KEY_LIBRARY_SORT_MODE = "library_sort_mode"
     private const val KEY_BUTTON_BINDING_PREFIX = "button_binding_"
     private const val KEY_AUTO_SAVE_SRAM = "auto_save_sram"
@@ -255,6 +256,15 @@ object TacoBoyPrefs {
     /** 0 means "never played" — sorts to the end of a descending "Recently Played" ordering. */
     fun getLastPlayed(context: Context, romUri: String): Long {
         return prefs(context).getLong(KEY_LAST_PLAYED_PREFIX + romUri, 0L)
+    }
+
+    /** The disc of a multi-disc game last switched to, by its filename in the playlist, which
+     *  the game boots from next time. Null until a disc has been changed. */
+    fun getInsertedDisc(context: Context, romUri: String): String? =
+        prefs(context).getString(KEY_INSERTED_DISC_PREFIX + romUri, null)
+
+    fun setInsertedDisc(context: Context, romUri: String, discName: String) {
+        prefs(context).edit().putString(KEY_INSERTED_DISC_PREFIX + romUri, discName).apply()
     }
 
     fun getPlayCount(context: Context, romUri: String): Int {

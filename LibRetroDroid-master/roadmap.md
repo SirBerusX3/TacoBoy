@@ -12,7 +12,7 @@ what is still to do.
 | 2 – ROM and core management | v0.2 | Done, except NES (carried into Phase 5) |
 | 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
 | 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
-| **5 – Finish what's open** | **v0.3** | Started: 5.1, 5.2 and 5.3 done |
+| **5 – Finish what's open** | **v0.3** | 5.1, 5.2, 5.3 and 5.7 done |
 | **6 – Achievements done properly** | **v0.4** | 6.1 and 6.2 done; 6.3 not started |
 | **7 – Reach** | **v1.0** | Not started |
 
@@ -135,7 +135,7 @@ backed by the number or reworded.
 
 **Verification:** a new user can get from install to playing without the README.
 
-### 5.7 Multi-disc games
+### 5.7 Multi-disc games — done 2026-09-14
 - Night Trap and other multi-disc Sega CD games, and PS1's, load one disc at a time with no way
   to change disc mid-game (seen by the user, 2026-09-14).
 - libretrodroid already exposes the core's disk-control interface (availableDisks,

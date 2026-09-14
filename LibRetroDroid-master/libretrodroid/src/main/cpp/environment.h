@@ -174,6 +174,10 @@ private:
 private:
     retro_hw_context_reset_t hw_context_reset = nullptr;
     retro_hw_context_reset_t hw_context_destroy = nullptr;
+    // A copy, pointed at by retro_disk_control_callback once a core has set one. Cores may pass
+    // this struct from the stack -- SwanStation does -- so keeping their pointer, as this did,
+    // left a dangling one that crashed the first disc swap. RetroArch copies it too.
+    struct retro_disk_control_callback retroDiskControlCallbackCopy {};
     struct retro_disk_control_callback *retro_disk_control_callback = nullptr;
 
     std::string savesDirectory;

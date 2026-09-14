@@ -300,6 +300,23 @@
             android:text="@string/quick_menu_hardcore_note"
             android:visibility="gone" />
 
+        <!-- Only for a game loaded from an .m3u playlist with more than one disc; see
+             TacoBoyActivity.onChangeDiscClicked. Straight under the save slots, not with Reset further
+             down: when a game asks for the next disc this is the one thing needed, and further
+             down it can sit below what the scrolling menu shows. -->
+        <TextView
+            android:id="@+id/change_disc_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:text="@string/quick_menu_change_disc"
+            android:textColor="@android:color/white"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:visibility="gone" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
