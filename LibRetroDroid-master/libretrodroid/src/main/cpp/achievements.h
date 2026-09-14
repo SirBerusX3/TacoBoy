@@ -55,6 +55,27 @@ public:
     void doFrame();
     std::vector<uint32_t> consumeTriggeredAchievements();
 
+    /** A change worth showing during play, drained by Kotlin after each step like triggers. */
+    struct IndicatorEvent {
+        enum class Type { PROGRESS, CHALLENGE_STARTED, CHALLENGE_ENDED };
+        Type type;
+        uint32_t id;
+        /** PROGRESS only: rcheevos' own formatting, "37/100" or "42%". */
+        std::string progress;
+        /** PROGRESS only: how close to done, 0 to 1, to pick which update to show. */
+        float fraction;
+    };
+    std::vector<IndicatorEvent> consumeIndicatorEvents();
+
+    /** Every active achievement's state for the achievement list: its progress text, empty if
+     *  it is not measured, and whether its challenge is active. */
+    struct Snapshot {
+        uint32_t id;
+        std::string progress;
+        bool challengeActive;
+    };
+    std::vector<Snapshot> snapshot();
+
 private:
     static uint32_t peekMemory(uint32_t address, uint32_t numBytes, void* ud);
     static void eventHandler(const rc_runtime_event_t* event);
@@ -73,6 +94,7 @@ private:
     Core* activeCore = nullptr;
 
     std::vector<uint32_t> pendingTriggers;
+    std::vector<IndicatorEvent> pendingIndicatorEvents;
 };
 
 }

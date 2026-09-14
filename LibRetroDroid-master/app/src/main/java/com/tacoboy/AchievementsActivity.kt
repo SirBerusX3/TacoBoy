@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -110,14 +111,27 @@ class AchievementsActivity : AppCompatActivity() {
         loadingIndicator.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            val progress = withContext(Dispatchers.IO) {
+            val fetched = withContext(Dispatchers.IO) {
                 RetroAchievementsClient.getGameProgress(username, apiKey, gameId)
             }
             loadingIndicator.visibility = View.GONE
 
+            // A game being played right now also has live state: progress toward measured
+            // achievements and active challenges, which RA requires the list to show (compliance
+            // audit A2b), and the session's own copy of the list, which works offline.
+            val live = AchievementsSession.liveListFor(gameId)
+            if (live != null) {
+                TacoBoyLog.d(TAG, "live state for ${live.runtime.size} achievements: " +
+                    "${live.runtime.values.count { it.progress.isNotEmpty() }} measured now, " +
+                    "${live.runtime.values.count { it.challengeActive }} challenges, ${live.unlockedThisSession.size} unlocked this session")
+            }
+            val progress = fetched ?: live?.progress
             if (progress == null) {
                 showEmpty(getString(R.string.achievements_list_load_failed))
                 return@launch
+            }
+            if (fetched == null) {
+                Toast.makeText(this@AchievementsActivity, R.string.achievements_list_live_offline, Toast.LENGTH_SHORT).show()
             }
 
             findViewById<TextView>(R.id.achievements_toolbar_title).text = progress.gameTitle
@@ -131,14 +145,15 @@ class AchievementsActivity : AppCompatActivity() {
                 return@launch
             }
 
-            val earned = progress.achievements.count { it.earned }
+            val unlockedNow = live?.unlockedThisSession.orEmpty()
+            val earned = progress.achievements.count { it.earned || it.id in unlockedNow }
             val totalPoints = progress.achievements.sumOf { it.points }
             summaryText.text = getString(
                 R.string.achievements_list_summary, earned, progress.achievements.size, totalPoints
             )
             summaryText.visibility = View.VISIBLE
 
-            recyclerView.adapter = AchievementsAdapter(progress.achievements)
+            recyclerView.adapter = AchievementsAdapter(progress.achievements, live?.runtime.orEmpty(), unlockedNow)
             recyclerView.visibility = View.VISIBLE
         }
     }
@@ -151,6 +166,7 @@ class AchievementsActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val TAG = "TacoBoy.AchievementsActivity"
         const val EXTRA_GAME_ID = "game_id"
         const val EXTRA_GAME_TITLE = "game_title"
 

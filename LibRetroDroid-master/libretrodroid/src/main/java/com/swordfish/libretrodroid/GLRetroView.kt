@@ -91,6 +91,9 @@ class GLRetroView(
     // distinct unlock events, not a state a late subscriber should be caught up on -- replaying
     // the last trigger to every new collector would risk a spurious duplicate toast/submission.
     private val achievementTriggeredEventsSubject = MutableSharedFlow<Int>()
+    // Same no-replay reasoning: a progress popup or challenge change is only worth showing when
+    // it happens, and anyone who needs the current state asks for getAchievementsSnapshot().
+    private val achievementIndicatorEventsSubject = MutableSharedFlow<AchievementIndicatorEvent>()
 
     private var lifecycle: Lifecycle? = null
 
@@ -242,6 +245,23 @@ class GLRetroView(
 
     fun getAchievementTriggeredEvents(): Flow<Int> {
         return achievementTriggeredEventsSubject
+    }
+
+    /** Measured progress changing and challenges starting or ending, for on-screen indicators. */
+    fun getAchievementIndicatorEvents(): Flow<AchievementIndicatorEvent> {
+        return achievementIndicatorEventsSubject
+    }
+
+    /** Every active achievement's current progress and challenge state, for the achievement list.
+     *  Not routed through the emulation thread, like getLibraryVersion: it reads under coreLock,
+     *  and a queued event would never run while the view is paused -- which it is whenever the
+     *  list is open over the game. */
+    fun getAchievementsSnapshot(): List<AchievementSnapshot> {
+        return LibretroDroid.getAchievementsSnapshot().mapNotNull { line ->
+            val parts = line.split('	', limit = 3)
+            val id = parts.getOrNull(0)?.toIntOrNull() ?: return@mapNotNull null
+            AchievementSnapshot(id, progress = parts.getOrNull(2).orEmpty(), challengeActive = parts.getOrNull(1) == "1")
+        }
     }
 
     fun getControllers(): Array<Array<Controller>> {
@@ -539,6 +559,20 @@ class GLRetroView(
     private fun sendAchievementTriggeredEvent(achievementId: Int) {
         lifecycle?.coroutineScope?.launch {
             achievementTriggeredEventsSubject.emit(achievementId)
+        }
+    }
+
+    /** This function gets called from the jni side.*/
+    private fun sendAchievementProgressEvent(achievementId: Int, progress: String, fraction: Float) {
+        lifecycle?.coroutineScope?.launch {
+            achievementIndicatorEventsSubject.emit(AchievementIndicatorEvent.Progress(achievementId, progress, fraction))
+        }
+    }
+
+    /** This function gets called from the jni side.*/
+    private fun sendAchievementChallengeEvent(achievementId: Int, started: Boolean) {
+        lifecycle?.coroutineScope?.launch {
+            achievementIndicatorEventsSubject.emit(AchievementIndicatorEvent.Challenge(achievementId, started))
         }
     }
 

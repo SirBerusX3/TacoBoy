@@ -5,6 +5,56 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (measured progress and challenge indicators — roadmap 6.2.9)
+
+**Achievements with a counter now show it, and achievements in a challenge say so**, during
+play and in the achievement list. RetroAchievements requires both Measured and Trigger flags to
+be "visible in the achievement list as well as displayed during gameplay" (compliance audit
+A2b). The runtime already evaluated them; nothing surfaced them. That completes roadmap 6.2.
+
+### Native: three more runtime events
+
+`Achievements::eventHandler` kept only triggers. It now also keeps the three events rcheevos' own
+client (`rc_client.c`) turns into indicators: `PROGRESS_UPDATED`, with the text formatted by
+`rc_runtime_format_achievement_measured` ("37/100", or "42%" for percentage counters), and
+`PRIMED` / `UNPRIMED` for challenges. They are drained after each step through the same JNI
+path as triggers, and ahead of them, so a counter reaching its target shows before the unlock
+it causes. `rc_runtime` already filters progress events the way rc_client does, and `doFrame`
+additionally keeps only each frame's closest-to-done update, as rc_client's tracker does, so
+counters ticking together do not flicker. `resetProgress`, run after a save state loads, now
+ends any active challenge first: `rc_runtime_reset` returns triggers to waiting without raising
+events, which would have left a challenge on screen indefinitely. `getAchievementsSnapshot`
+reads every active achievement's progress and challenge state under `coreLock`, for the list.
+
+### During play
+
+  - **Progress popup**, bottom-left of the game area above the clamp: "title  5/26", hidden two
+    seconds after the last update, rc_client's timing.
+  - **Challenge indicator** above it, in amber: "◆ title" per active challenge, three at most
+    and then "+N more", for as long as the challenge lasts.
+  - Both are declared before the quick menu, so an open menu covers them, and pausing tracking
+    clears them; resuming rebuilds the challenges from the runtime, which kept evaluating.
+
+### In the list
+
+A new **Achievements** entry in the quick menu opens the running game's list. Each row gains a
+status line from the live runtime: its progress, "Challenge active", or "Unlocked this session",
+which also counts toward the earned total before RA has been told. When RA cannot be reached,
+the list falls back to the session's own copy, so it works offline. The list finds the session
+through a weak reference, so a finished game's view is never kept alive by it.
+
+### Verified on the SM-S938B
+
+  - 007: Tomorrow Never Dies: all 41 tracked; the runtime snapshot reported 13 measured
+    achievements, and the list showed "0/26", "0/17" and "0/21" under the Exterminator
+    achievements (screenshot). With Wi-Fi and data off, the list loaded from the session.
+  - **By the user, playing:** killing an enemy on 007 difficulty showed the progress popup, which
+    vanished shortly after, and the list's count updated. It resets if the level is not saved,
+    which is the game's own counter behaving normally. In Army Men: Air Attack, the challenge
+    indicator appeared in amber with the diamond. Neither indicator covers anything important.
+
+Nothing new is stored or sent, so the privacy policy is unchanged. 2 new tests, 60 passing.
+
 ## 2026-09-14 (privacy policy — roadmap 6.2.8)
 
 **TacoBoy has a privacy policy**, `PRIVACY.md` at the repository root, linked from Settings >

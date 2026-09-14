@@ -40,6 +40,18 @@
             android:maxLines="2"
             android:ellipsize="end" />
 
+        <!-- Live state while the game is running: challenge active, measured progress, or
+             unlocked this session. Gone otherwise. See AchievementsAdapter. -->
+        <TextView
+            android:id="@+id/achievement_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="12sp"
+            android:textColor="#FFFFD54F"
+            android:maxLines="1"
+            android:visibility="gone" />
+
     </LinearLayout>
 
     <TextView

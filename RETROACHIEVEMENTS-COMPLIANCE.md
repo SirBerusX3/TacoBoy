@@ -19,7 +19,7 @@ is a feature decision to revisit, not a bug.
 |---|---|---|---|
 | A1 | Achievement list accessible in-emulator | ✅ | `AchievementsActivity`, reachable from the library |
 | A2 | Triggers evaluate correctly | ✅ | Native `rc_runtime_t` via `achievements.cpp`; hardware-confirmed live unlocks |
-| A2b | Measured/Trigger flags visible in list **and** during gameplay | ⚠️ | Unlock toasts exist; **Measured progress display not implemented** — needs checking against a game that uses it |
+| A2b | Measured/Trigger flags visible in list **and** during gameplay | ✅ | Since 2026-09-14. During play: a progress popup (rcheevos' "37/100" or "42%", hidden 2s after the last update) and a challenge indicator for every primed achievement. In the list, opened from the quick menu: live progress, "Challenge active" and "Unlocked this session" per row. Seen on device: 007: Tomorrow Never Dies' kill counters in the popup and list, and Army Men: Air Attack's challenge indicator |
 | A3 | **Rich Presence** | ❌ | No implementation anywhere |
 | A3 | **Leaderboards** | ❌ | No implementation anywhere |
 | A4 | **Offline unlock queueing** | ✅ | Since 2026-09-14. Every unlock is written to a private on-disk queue (`PendingUnlocks`) before its first send, retried on rcheevos' schedule while the app runs and on every start, with RA's `o` offset so the real unlock time is kept. Seen on device against the live server. A game started with no connection tracks from the data cached at its last online start or "Check RetroAchievements" (`AchievementCache`); one never seen online cannot be identified and tracks nothing |
@@ -111,7 +111,7 @@ and loses nothing.
 **Medium:**
 7. ~~Offline unlock queueing with retry (A4)~~ — done 2026-09-14, including offline starts of games played online before
 8. ~~Write a real privacy policy (F5) — mostly a writing job, but must be exact~~ — done 2026-09-14
-9. Measured-progress display (A2b)
+9. ~~Measured-progress display (A2b)~~ — done 2026-09-14, with challenge indicators
 
 **Large — the real cost:**
 10. **Hardcore submission path**: `hardcore = 1`, gated on every rule above holding

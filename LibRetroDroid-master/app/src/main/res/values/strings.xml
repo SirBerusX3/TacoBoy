@@ -108,6 +108,16 @@
     <string name="quick_menu_info_unknown_rom">Unknown</string>
     <string name="quick_menu_achievement_tracking_off">Achievement Tracking: Off</string>
     <string name="quick_menu_achievement_tracking_on">Achievement Tracking: On</string>
+    <string name="quick_menu_achievements">Achievements</string>
+    <string name="achievement_progress_indicator">%1$s  %2$s</string>
+    <string name="achievement_challenge_line">◆ %1$s</string>
+    <plurals name="achievement_challenge_more">
+        <item quantity="one">+%d more challenge</item>
+        <item quantity="other">+%d more challenges</item>
+    </plurals>
+    <string name="achievement_list_challenge_active">Challenge active</string>
+    <string name="achievement_list_unlocked_this_session">Unlocked this session</string>
+    <string name="achievements_list_live_offline">Offline: showing this session\'s saved data</string>
     <string name="quick_menu_achievement_tracking_paused_toast">Achievement tracking paused for this session</string>
     <string name="quick_menu_achievement_tracking_resumed_toast">Achievement tracking resumed</string>
     <string name="quick_menu_slot_empty">Slot %1$d — Empty</string>

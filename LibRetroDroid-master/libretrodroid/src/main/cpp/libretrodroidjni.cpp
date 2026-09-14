@@ -61,6 +61,25 @@ JNIEXPORT jstring JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_getLibr
     return env->NewStringUTF(LibretroDroid::getInstance().getLibraryVersion().c_str());
 }
 
+/** Each active achievement as "id<TAB>1 if its challenge is active, else 0<TAB>progress". A flat
+ *  string array keeps the JNI side to one class lookup; GLRetroView parses it. */
+JNIEXPORT jobjectArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_getAchievementsSnapshot(
+    JNIEnv* env,
+    jclass obj
+) {
+    auto snapshot = LibretroDroid::getInstance().getAchievementsSnapshot();
+    jclass stringClass = env->FindClass("java/lang/String");
+    jobjectArray result = env->NewObjectArray((jsize) snapshot.size(), stringClass, nullptr);
+    for (size_t i = 0; i < snapshot.size(); ++i) {
+        std::string line = std::to_string(snapshot[i].id) + "	" +
+            (snapshot[i].challengeActive ? "1" : "0") + "	" + snapshot[i].progress;
+        jstring jLine = env->NewStringUTF(line.c_str());
+        env->SetObjectArrayElement(result, (jsize) i, jLine);
+        env->DeleteLocalRef(jLine);
+    }
+    return result;
+}
+
 JNIEXPORT jint JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_availableDisks(
     JNIEnv* env,
     jclass obj
@@ -552,6 +571,24 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_step(
             jmethodID sendRumbleStrengthMethodID = env->GetMethodID(cls, "sendRumbleEvent", "(IFF)V");
             env->CallVoidMethod(glRetroView, sendRumbleStrengthMethodID, port, weak, strong);
         });
+    }
+
+    // Before triggers, so progress reaching its target shows ahead of the unlock it causes.
+    auto indicatorEvents = LibretroDroid::getInstance().consumeAchievementIndicatorEvents();
+    if (!indicatorEvents.empty()) {
+        jclass cls = env->GetObjectClass(glRetroView);
+        jmethodID sendProgressMethodID = env->GetMethodID(cls, "sendAchievementProgressEvent", "(ILjava/lang/String;F)V");
+        jmethodID sendChallengeMethodID = env->GetMethodID(cls, "sendAchievementChallengeEvent", "(IZ)V");
+        for (const auto& event : indicatorEvents) {
+            if (event.type == Achievements::IndicatorEvent::Type::PROGRESS) {
+                jstring progress = env->NewStringUTF(event.progress.c_str());
+                env->CallVoidMethod(glRetroView, sendProgressMethodID, (jint) event.id, progress, (jfloat) event.fraction);
+                env->DeleteLocalRef(progress);
+            } else {
+                jboolean started = event.type == Achievements::IndicatorEvent::Type::CHALLENGE_STARTED;
+                env->CallVoidMethod(glRetroView, sendChallengeMethodID, (jint) event.id, started);
+            }
+        }
     }
 
     auto triggeredAchievements = LibretroDroid::getInstance().consumeTriggeredAchievements();

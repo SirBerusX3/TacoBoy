@@ -5,10 +5,15 @@ import android.widget.Toast
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.android.libretrodroid.R
+import com.swordfish.libretrodroid.AchievementIndicatorEvent
+import com.swordfish.libretrodroid.AchievementSnapshot
 import com.swordfish.libretrodroid.GLRetroView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.lang.ref.WeakReference
 
 /**
  * Orchestrates live RetroAchievements tracking for one running game: identifies it (the
@@ -31,10 +36,26 @@ class AchievementsSession(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
     private val retroView: GLRetroView,
+    private val indicators: Indicators,
 ) {
+    /** Where the during-play indicators are drawn; TacoBoyActivity. */
+    interface Indicators {
+        fun showAchievementProgress(text: String)
+        fun hideAchievementProgress()
+        /** Empty hides the challenge indicator. */
+        fun showAchievementChallenges(lines: List<String>)
+    }
+
     private var gameHash: String? = null
+    private var gameProgress: RetroAchievementsClient.GameProgress? = null
     private var achievementsById: Map<Int, RetroAchievementsClient.AchievementInfo> = emptyMap()
     private val submittedThisSession = mutableSetOf<Int>()
+    // Announced unlocks only, unlike submittedThisSession, which also holds any that triggered
+    // while tracking was paused and were deliberately dropped. The list marks these earned.
+    private val unlockedThisSession = mutableSetOf<Int>()
+    // Achievements whose challenge is active, in the order they started.
+    private val activeChallenges = LinkedHashSet<Int>()
+    private var progressHideJob: Job? = null
     // One "saved for later" toast per session is enough to say the connection is down; a
     // toast for every unlock after that would only repeat it.
     private var toldQueuedOffline = false
@@ -65,9 +86,38 @@ class AchievementsSession(
 
     fun isTrackingEnabled(): Boolean = trackingEnabled
 
+    /** Pausing also clears the indicators, since nothing they show is being acted on. Resuming
+     *  rebuilds the challenge indicator from the runtime, which kept evaluating throughout. */
     fun setTrackingEnabled(enabled: Boolean) {
         trackingEnabled = enabled
+        progressHideJob?.cancel()
+        indicators.hideAchievementProgress()
+        activeChallenges.clear()
+        if (enabled) {
+            retroView.getAchievementsSnapshot().filter { it.challengeActive }.forEach { activeChallenges.add(it.achievementId) }
+        }
+        refreshChallengeIndicator()
     }
+
+    /** The running game's id, for opening its achievement list; 0 until tracking is active. */
+    var gameId: Int = 0
+        private set
+
+    /** What the achievement list needs to show this game live: the list as the session has it,
+     *  which works offline, the runtime's current progress, and what was unlocked this session.
+     *  Null for any other game. Reads the runtime under its lock, so safe while the game is
+     *  paused behind the list. */
+    fun liveList(forGameId: Int): LiveList? {
+        val progress = gameProgress ?: return null
+        if (!active || forGameId != gameId) return null
+        return LiveList(progress, retroView.getAchievementsSnapshot().associateBy { it.achievementId }, unlockedThisSession.toSet())
+    }
+
+    class LiveList(
+        val progress: RetroAchievementsClient.GameProgress,
+        val runtime: Map<Int, AchievementSnapshot>,
+        val unlockedThisSession: Set<Int>,
+    )
 
     fun start(rom: RomLibrary.RomEntry, gameSystem: GameSystem, core: CoreDefinition) {
         lifecycleOwner.lifecycleScope.launch {
@@ -100,6 +150,8 @@ class AchievementsSession(
             }
 
             gameHash = hash
+            gameProgress = progress
+            gameId = progress.gameId
             achievementsById = progress.achievements.associateBy { it.id }
             submittedThisSession.clear()
 
@@ -124,11 +176,16 @@ class AchievementsSession(
             TacoBoyLog.d(TAG, "tracking ${progress.gameTitle}: ${toActivate.size} of ${progress.achievements.size} achievements active")
 
             active = true
+            current = WeakReference(this@AchievementsSession)
             retroView.loadAchievements(
                 gameSystem.raConsoleId,
                 toActivate.map { it.first }.toIntArray(),
                 toActivate.map { it.second }.toTypedArray(),
             )
+
+            launch {
+                retroView.getAchievementIndicatorEvents().collect { onIndicatorEvent(it) }
+            }
 
             retroView.getAchievementTriggeredEvents().collect { achievementId ->
                 onAchievementTriggered(sessionUsername, sessionToken, achievementId)
@@ -182,6 +239,8 @@ class AchievementsSession(
         if (!trackingEnabled) return
         val info = achievementsById[achievementId] ?: return
         val hash = gameHash ?: return
+        unlockedThisSession.add(achievementId)
+        if (activeChallenges.remove(achievementId)) refreshChallengeIndicator()
 
         TacoBoyLog.d(TAG, "achievement triggered: ${info.title} ($achievementId)")
 
@@ -215,7 +274,57 @@ class AchievementsSession(
         }
     }
 
-    private companion object {
-        const val TAG = "TacoBoy.AchievementsSession"
+    /**
+     * The during-play half of measured and challenge display (compliance audit A2b), matching
+     * rcheevos' own client: a progress popup for the latest update, hidden two seconds after it
+     * stops changing (the runtime already keeps only each frame's closest-to-done update), and
+     * a challenge indicator for as long as any achievement's challenge is active.
+     */
+    private fun onIndicatorEvent(event: AchievementIndicatorEvent) {
+        if (!trackingEnabled) return
+        val info = achievementsById[event.achievementId] ?: return
+        when (event) {
+            is AchievementIndicatorEvent.Progress -> {
+                indicators.showAchievementProgress(
+                    context.getString(R.string.achievement_progress_indicator, info.title, event.progress)
+                )
+                progressHideJob?.cancel()
+                progressHideJob = lifecycleOwner.lifecycleScope.launch {
+                    delay(PROGRESS_INDICATOR_MS)
+                    indicators.hideAchievementProgress()
+                }
+            }
+            is AchievementIndicatorEvent.Challenge -> {
+                val changed = if (event.started) activeChallenges.add(event.achievementId) else activeChallenges.remove(event.achievementId)
+                if (changed) refreshChallengeIndicator()
+            }
+        }
+    }
+
+    private fun refreshChallengeIndicator() {
+        val titles = activeChallenges.mapNotNull { achievementsById[it]?.title }
+        val (shown, more) = challengeIndicatorLines(titles, MAX_CHALLENGE_LINES)
+        val lines = shown.map { context.getString(R.string.achievement_challenge_line, it) } +
+            (if (more > 0) listOf(context.resources.getQuantityString(R.plurals.achievement_challenge_more, more, more)) else emptyList())
+        indicators.showAchievementChallenges(lines)
+    }
+
+    companion object {
+        private const val TAG = "TacoBoy.AchievementsSession"
+        // rc_client's progress tracker hides two seconds after its last update.
+        private const val PROGRESS_INDICATOR_MS = 2_000L
+        // The indicator sits over the game; past three, a count says the rest.
+        private const val MAX_CHALLENGE_LINES = 3
+
+        /** The session currently tracking a game, for the achievement list. Weak, so a session
+         *  whose activity is gone never keeps its game view alive. */
+        @Volatile
+        private var current: WeakReference<AchievementsSession>? = null
+
+        fun liveListFor(gameId: Int): LiveList? = current?.get()?.liveList(gameId)
+
+        /** The first [max] titles, and how many more were left out. */
+        internal fun challengeIndicatorLines(titles: List<String>, max: Int): Pair<List<String>, Int> =
+            if (titles.size <= max) titles to 0 else titles.take(max) to titles.size - max
     }
 }

@@ -171,6 +171,50 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Live achievement indicators, both driven by AchievementsSession. RetroAchievements requires
+         measured progress and active challenges to be shown during gameplay (compliance audit
+         A2b). Bottom of the game area, above the clamp boundary, so they never sit under the
+         Pocket Taco; declared before the quick menu so an open menu covers them.
+         Challenge: every achievement whose challenge is active, for as long as it is.
+         Progress: the latest measured update, hidden two seconds after it stops changing. -->
+    <TextView
+        android:id="@+id/achievement_challenge_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/boundary_hint_bg"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        android:textColor="#FFFFD54F"
+        android:textSize="12sp"
+        android:maxLines="4"
+        android:visibility="gone"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/achievement_progress_indicator"
+        app:layout_goneMarginBottom="18dp" />
+
+    <TextView
+        android:id="@+id/achievement_progress_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginBottom="18dp"
+        android:background="@drawable/boundary_hint_bg"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:visibility="gone"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/boundary_guideline" />
+
     <!-- Mirrors library_button on the opposite corner; opens quick_menu_panel. -->
     <TextView
         android:id="@+id/menu_button"
@@ -315,6 +359,21 @@
              TacoBoyActivity.toggleQuickMenu); nothing to pause otherwise. Text set
              dynamically in updateAchievementTrackingToggle. A lightweight per-session
              pause, distinct from Settings > Achievements' login/logout toggle. -->
+        <!-- The running game's achievement list, with live progress. Hidden unless tracking is
+             active, like the toggle below. -->
+        <TextView
+            android:id="@+id/achievements_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:text="@string/quick_menu_achievements"
+            android:textColor="@android:color/white"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/achievement_tracking_toggle_button"
             android:layout_width="match_parent"

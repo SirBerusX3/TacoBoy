@@ -132,6 +132,8 @@ public:
     void loadAchievements(uint32_t consoleId, const std::vector<std::pair<uint32_t, std::string>>& idsAndMemAddrs);
     void resetAchievements();
     std::vector<uint32_t> consumeTriggeredAchievements();
+    std::vector<Achievements::IndicatorEvent> consumeAchievementIndicatorEvents();
+    std::vector<Achievements::Snapshot> getAchievementsSnapshot();
 
     void setFrameSpeed(unsigned int speed);
 

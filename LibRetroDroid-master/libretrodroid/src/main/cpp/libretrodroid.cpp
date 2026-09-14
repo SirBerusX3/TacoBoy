@@ -729,6 +729,23 @@ std::vector<uint32_t> LibretroDroid::consumeTriggeredAchievements() {
     return {};
 }
 
+std::vector<Achievements::IndicatorEvent> LibretroDroid::consumeAchievementIndicatorEvents() {
+    if (achievements) {
+        return achievements->consumeIndicatorEvents();
+    }
+    return {};
+}
+
+// Called from the UI thread while the emulation thread may be stepping, so it takes coreLock
+// like everything else that reads the runtime outside step().
+std::vector<Achievements::Snapshot> LibretroDroid::getAchievementsSnapshot() {
+    std::lock_guard<std::mutex> lock(coreLock);
+    if (achievements) {
+        return achievements->snapshot();
+    }
+    return {};
+}
+
 void LibretroDroid::setViewport(Rect viewportRect) {
     this->viewportRect = viewportRect;
 

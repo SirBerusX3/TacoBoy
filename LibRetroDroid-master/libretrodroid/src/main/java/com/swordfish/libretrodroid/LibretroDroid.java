@@ -148,4 +148,5 @@ public class LibretroDroid {
 
     public static native void loadAchievements(int consoleId, int[] ids, String[] memAddrDefinitions);
     public static native void resetAchievements();
+    public static native String[] getAchievementsSnapshot();
 }

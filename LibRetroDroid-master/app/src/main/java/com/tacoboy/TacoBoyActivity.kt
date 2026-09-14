@@ -71,7 +71,7 @@ private const val SAFE_START_CRASH_STREAK = 2
  * across every system in GameSystem — core selection follows the picked
  * ROM's extension.
  */
-class TacoBoyActivity : AppCompatActivity() {
+class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
 
     private var retroView: GLRetroView? = null
 
@@ -99,6 +99,9 @@ class TacoBoyActivity : AppCompatActivity() {
     private lateinit var hardcoreIndicator: View
     private lateinit var fastForwardToggleButton: TextView
     private lateinit var achievementTrackingToggleButton: TextView
+    private lateinit var achievementsButton: View
+    private lateinit var achievementProgressIndicator: TextView
+    private lateinit var achievementChallengeIndicator: TextView
 
     private var currentRomIdentifier: String? = null
     private var currentGameSystem: GameSystem? = null
@@ -259,6 +262,10 @@ class TacoBoyActivity : AppCompatActivity() {
         fastForwardToggleButton.setOnClickListener { onFastForwardToggleClicked() }
         findViewById<View>(R.id.info_button).setOnClickListener { onInfoClicked() }
         achievementTrackingToggleButton = findViewById(R.id.achievement_tracking_toggle_button)
+        achievementsButton = findViewById(R.id.achievements_button)
+        achievementsButton.setOnClickListener { onAchievementsClicked() }
+        achievementProgressIndicator = findViewById(R.id.achievement_progress_indicator)
+        achievementChallengeIndicator = findViewById(R.id.achievement_challenge_indicator)
         achievementTrackingToggleButton.setOnClickListener { onAchievementTrackingToggleClicked() }
 
         boundaryController = BoundaryController(
@@ -586,13 +593,38 @@ class TacoBoyActivity : AppCompatActivity() {
         val session = achievementsSession
         if (session == null || !session.isActive()) {
             achievementTrackingToggleButton.visibility = View.GONE
+            achievementsButton.visibility = View.GONE
             return
         }
+        achievementsButton.visibility = View.VISIBLE
         achievementTrackingToggleButton.visibility = View.VISIBLE
         achievementTrackingToggleButton.text = getString(
             if (session.isTrackingEnabled()) R.string.quick_menu_achievement_tracking_on
             else R.string.quick_menu_achievement_tracking_off
         )
+    }
+
+    /** The running game's list, live: AchievementsActivity finds this session through
+     *  AchievementsSession.liveListFor and shows current progress, even offline. */
+    private fun onAchievementsClicked() {
+        val session = achievementsSession ?: return
+        quickMenuPanel.visibility = View.GONE
+        if (session.gameId <= 0) return
+        AchievementsActivity.start(this, session.gameId, currentRomIdentifier ?: "")
+    }
+
+    override fun showAchievementProgress(text: String) {
+        achievementProgressIndicator.text = text
+        achievementProgressIndicator.visibility = View.VISIBLE
+    }
+
+    override fun hideAchievementProgress() {
+        achievementProgressIndicator.visibility = View.GONE
+    }
+
+    override fun showAchievementChallenges(lines: List<String>) {
+        achievementChallengeIndicator.text = lines.joinToString("\n")
+        achievementChallengeIndicator.visibility = if (lines.isEmpty()) View.GONE else View.VISIBLE
     }
 
     private fun onAchievementTrackingToggleClicked() {
@@ -827,7 +859,7 @@ class TacoBoyActivity : AppCompatActivity() {
             val uri = currentRomUri ?: return@launch
             val gameSystem = currentGameSystem ?: return@launch
             val core = currentCore ?: return@launch
-            val session = AchievementsSession(this@TacoBoyActivity, this@TacoBoyActivity, newRetroView)
+            val session = AchievementsSession(this@TacoBoyActivity, this@TacoBoyActivity, newRetroView, this@TacoBoyActivity)
             achievementsSession = session
             session.start(RomLibrary.RomEntry(identifier, uri), gameSystem, core)
         }
