@@ -262,8 +262,8 @@ object RetroAchievementsClient {
 
     /**
      * Submits a real-time unlock — RA's Connect API `r=awardachievement`. Softcore only
-     * (hardcore mode, which disables save-states, is out of scope — see
-     * CHANGELOG.md/roadmap). The `v=` request-signature algorithm is exact, taken
+     * (a hardcore submission path is roadmap 6.3, a stretch goal — see
+     * RETROACHIEVEMENTS-COMPLIANCE.md). The `v=` request-signature algorithm is exact, taken
      * directly from `rc_api_init_award_achievement_request_hosted` in the vendored
      * `rapi/rc_api_runtime.c`, not guessed: MD5(achievementId + username + hardcoreFlag),
      * each concatenated as their plain decimal-string form, hex-encoded lowercase.

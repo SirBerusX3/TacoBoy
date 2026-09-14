@@ -34,11 +34,11 @@ is a feature decision to revisit, not a bug.
 | B1 | Cheats disabled in hardcore | ✅ | No cheat engine, no Game Genie/GameShark support, no cheat file loading |
 | B2 | Rewind disabled | ✅ | No rewind feature exists |
 | B3 | Slowdown and frame advance disabled | ✅ | Neither exists. Fast-forward is speed **up**; B lists only slowdown and frame advance, and G repeats "rewind/slo-mo/frame advance" — so fast-forward appears permitted. Worth confirming with RA rather than assuming |
-| B4 | **Loading save states ALWAYS blocked** | ⛔ | `TacoBoyActivity.onLoadSlot` has **no hardcore check** — it loads unconditionally. Hardcore only *hides* the slot UI (`TacoBoyActivity:517`). A UI-only guard is exactly what section G auto-fails on |
+| B4 | **Loading save states ALWAYS blocked** | ✅ | Since 2026-09-14. `TacoBoyActivity.onLoadSlot` refuses to load while the running game is hardcore, before the state reaches the core; the disabled Load button is only the visible half. Seen on device: Load disabled in hardcore, enabled again once hardcore is turned off |
 | B5 | Rich Presence/Leaderboards cannot be disabled in hardcore | N/A | Neither exists yet |
 | B6 | **Resume/quick-resume must drop to Casual** | ❌ | "Resume on Launch" restores the last ROM with no mode change |
-| B7 | **Casual → hardcore mid-session must force a full game reset** | ⛔ | `SettingsActivity:1721` just writes the pref. Section G: "The ability to switch to hardcore mode without a reset of the game" is an automatic rejection |
-| B8 | States creatable in hardcore but not loadable | ⚠️ | Both are hidden together; the rule wants creation allowed, loading blocked |
+| B7 | **Casual → hardcore mid-session must force a full game reset** | ✅ | Since 2026-09-14. A running game keeps the mode it loaded in (`sessionHardcore`); returning to it with the preference newly on reloads it through the Reset path (`enforceHardcoreTransition`). Hardcore → casual applies at once, as allowed. Seen on device both ways |
+| B8 | States creatable in hardcore but not loadable | ✅ | Since 2026-09-14. Slots stay visible with Save enabled and Load disabled; a save in hardcore was seen to update its slot |
 | B9 | No memory editors/debuggers/TAS | ✅ | None exist |
 
 ## C. Identity and integrity
@@ -88,10 +88,10 @@ and loses nothing.
 
 | Criterion | Standing |
 |---|---|
-| Loading save states in hardcore | ⛔ **at risk** — UI-only guard (B4) |
+| Loading save states in hardcore | ✅ blocked in code (B4) |
 | Rewind / slo-mo / frame advance in hardcore | ✅ none exist |
 | Gameplay-altering cheats in hardcore | ✅ none exist |
-| Switching to hardcore without a game reset | ⛔ **fails today** (B7) |
+| Switching to hardcore without a game reset | ✅ forces a reset (B7) |
 | Non-unique user agent | ✅ unique, in RA's full format (C1, C1b) |
 | Undisclosed history of another emulator's UA | ✅ |
 | Non-commercial cores + any commercialization | ✅ |
@@ -100,9 +100,9 @@ and loses nothing.
 ## If this is ever pursued, in cost order
 
 **Cheap (hours each), and worth doing regardless of compliance:**
-1. Guard `onLoadSlot` on hardcore mode — a real check, not a hidden button (B4, auto-fail)
-2. Force a game reset when switching casual → hardcore (B7, auto-fail); the
-   `EXTRA_FORCE_RELOAD_ROM_URI` reload path already does exactly this
+1. ~~Guard `onLoadSlot` on hardcore mode — a real check, not a hidden button (B4, auto-fail)~~ — done 2026-09-14
+2. ~~Force a game reset when switching casual → hardcore (B7, auto-fail)~~ — done 2026-09-14,
+   through the `EXTRA_FORCE_RELOAD_ROM_URI` reload path as planned
 3. On-screen hardcore indicator (E2) — same pattern as the TURBO badge
 4. ~~Build the user agent from `versionName` + Android version + active core (C1)~~ — done 2026-09-14
 5. Resume-on-launch drops to casual (B6)

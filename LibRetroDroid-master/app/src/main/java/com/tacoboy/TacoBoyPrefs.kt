@@ -434,11 +434,13 @@ object TacoBoyPrefs {
         editor.apply()
     }
 
-    /** RetroAchievements' Hardcore Mode rules forbid save-states (an emulator-only
+    /** RetroAchievements' Hardcore Mode rules forbid loading save-states (an emulator-only
      *  convenience) but not the SRAM/cart-battery saves every real cartridge/memory
-     *  card already has — this only gates the quick menu's save-state slots (see
-     *  TacoBoyActivity's save_slots_container), never SramManager/auto-save. Off by
-     *  default since it's a restriction, not a default-safe behavior. */
+     *  card already has — this only blocks loading from the quick menu's save-state slots,
+     *  never SramManager/auto-save. A running game does not read this directly: it takes its
+     *  own mode at load (TacoBoyActivity.sessionHardcore), because turning this on mid-game
+     *  must reset the game first. Off by default since it's a restriction, not a
+     *  default-safe behavior. */
     fun isHardcoreModeEnabled(context: Context): Boolean {
         return prefs(context).getBoolean(KEY_HARDCORE_MODE, false)
     }

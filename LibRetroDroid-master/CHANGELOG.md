@@ -5,6 +5,56 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (Hardcore Mode: loading blocked in code, and a reset to enter it — roadmap 6.1.1–2)
+
+**Both hardcore auto-fails in the compliance audit are closed**: B4, loading save states
+with only a UI guard, and B7, becoming hardcore mid-session without a reset. B8 came with
+them. Unlocks are still submitted as softcore; this makes Hardcore Mode enforce RA's rules,
+not report differently.
+
+**A running game now has its own mode.** The preference cannot be the rule by itself,
+because Settings is reachable through the library with the game still running underneath,
+so the preference can change mid-session. `TacoBoyActivity.sessionHardcore` is taken from it
+when a game loads, and everything a hardcore game forbids checks that instead. On the way
+back to the game, `enforceHardcoreTransition` compares the two (`HardcoreTransition`, a pure
+function with tests):
+
+  - **Turned on**: the game reloads through Reset's `EXTRA_FORCE_RELOAD_ROM_URI` path, with a
+    toast saying why. It is skipped when a reload is already pending, because a ROM switch
+    picked in the library delivers its result just before `onResume` and already loads fresh.
+  - **Turned off**: applies at once, no reload. RA allows hardcore to casual mid-session.
+
+The two directions are tested separately because treating them alike is wrong both ways: a
+reset on the way out would cost the player progress for nothing, and none on the way in is
+the auto-fail.
+
+**Loading is refused in `onLoadSlot` itself**, before the state reaches the core, not only
+by the disabled button. It is the only path by which a state is loaded.
+
+**Save states can now be made in hardcore.** Before this, hardcore hid all four slots. RA's
+rules allow creating states in hardcore, for debugging, and forbid only loading them, so the
+slots stay visible with Save enabled and Load disabled, under a reworded note. The Settings
+note now says that turning Hardcore Mode on restarts a running game. It had said the option
+"only hides the in-game save-state UI", which is no longer all it does.
+
+**Verified on the SM-S938B**, driven through the real UI over adb, with a PS1 game resumed:
+  - Casual: a state saved to slot 4, its Load button enabled.
+  - Hardcore turned on in Settings, back to the game: logcat showed "Hardcore Mode turned on
+    mid-session: reloading the game", and live tracking started afresh, confirming a real reload.
+  - In hardcore: the note shown, Load disabled, tapping it did nothing, and Save still worked,
+    moving slot 4 from 12:25 to 12:28.
+  - Hardcore turned off, back to the game: "turned off mid-session: casual from now", no
+    reload (tracking did not restart), note gone, Load enabled.
+
+The test state was deleted afterwards. **Not exercised:** the refusal inside `onLoadSlot`,
+which the disabled button makes unreachable from the UI. That is its purpose, but it means
+the check was confirmed by reading rather than by triggering it. 40 unit tests pass.
+
+### Open questions
+- **B6, "Resume on Launch" must drop to casual**, is roadmap 6.1 item 5 and untouched here.
+  TacoBoy's resume boots the last game fresh with its SRAM, not from a restored state, so it
+  is not obviously the "quick resume" B6 describes. Settle that before building anything.
+
 ## 2026-09-14 (the achievements user agent names the running core — roadmap 6.1.4)
 
 **RetroAchievements now sees which core a request came from.** Seen in logcat on the SM-S938B,

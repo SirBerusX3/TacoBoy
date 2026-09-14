@@ -191,9 +191,9 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toTopOf="@id/boundary_guideline">
 
-        <!-- Hidden as one unit in Hardcore Mode (see TacoBoyPrefs.isHardcoreModeEnabled).
-             RA's rules forbid save-states, not SRAM/cart-battery saves, which this
-             doesn't touch at all. -->
+        <!-- Shown in Hardcore Mode too: RA's rules allow creating save states there and
+             forbid loading them, so only the Load buttons are disabled (TacoBoyActivity.
+             updateSlotLabels, enforced in onLoadSlot). SRAM saves are never affected. -->
         <LinearLayout
             android:id="@+id/save_slots_container"
             android:layout_width="match_parent"

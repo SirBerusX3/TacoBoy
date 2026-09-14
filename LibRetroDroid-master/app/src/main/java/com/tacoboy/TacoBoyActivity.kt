@@ -93,7 +93,6 @@ class TacoBoyActivity : AppCompatActivity() {
     private lateinit var slotLabels: List<TextView>
     private lateinit var slotSaveButtons: List<View>
     private lateinit var slotLoadButtons: List<View>
-    private lateinit var saveSlotsContainer: View
     private lateinit var hardcoreModeNote: View
     private lateinit var fpsOverlay: TextView
     private lateinit var turboIndicator: TextView
@@ -108,6 +107,12 @@ class TacoBoyActivity : AppCompatActivity() {
     private var currentCore: CoreDefinition? = null
     private var currentRomUri: Uri? = null
     private var sessionStartTimeMs: Long = 0L
+
+    // The running game's own Hardcore Mode, taken from the preference when it loads. Not the
+    // preference itself, which Settings can change underneath a running game: turning it on
+    // must not make the game hardcore until it has been reset (see HardcoreTransition and
+    // enforceHardcoreTransition). Everything a hardcore game forbids checks this.
+    private var sessionHardcore = false
 
     // Reset implicitly on every ROM switch -- setupRetroView only ever runs once per
     // Activity instance (switching ROMs recreates the Activity), so this can't leak
@@ -243,7 +248,6 @@ class TacoBoyActivity : AppCompatActivity() {
         slotLoadButtons = slotRowIds.map { findViewById<View>(it).findViewById(R.id.slot_load) }
         slotSaveButtons.forEachIndexed { index, view -> view.setOnClickListener { onSaveSlot(index + 1) } }
         slotLoadButtons.forEachIndexed { index, view -> view.setOnClickListener { onLoadSlot(index + 1) } }
-        saveSlotsContainer = findViewById(R.id.save_slots_container)
         hardcoreModeNote = findViewById(R.id.hardcore_mode_note)
         fpsOverlay = findViewById(R.id.fps_overlay)
         turboIndicator = findViewById(R.id.turbo_indicator)
@@ -284,6 +288,33 @@ class TacoBoyActivity : AppCompatActivity() {
         touchControls.globalScale = TacoBoyPrefs.getTouchControlScale(this)
         touchControls.hapticStrength = TacoBoyPrefs.getHapticStrength(this)
         inputManager().registerInputDeviceListener(inputDeviceListener, null)
+        enforceHardcoreTransition()
+    }
+
+    /** Settings is reachable through the library while a game keeps running, and coming back
+     *  lands here, so this is where a Hardcore Mode change made there meets the running game.
+     *  Turning hardcore on reloads the game through the same path as Reset: RetroAchievements
+     *  auto-fails an emulator that lets a session become hardcore without one. */
+    private fun enforceHardcoreTransition() {
+        val uri = currentRomUri ?: return
+        if (retroView == null) return
+        when (hardcoreTransition(sessionHardcore, TacoBoyPrefs.isHardcoreModeEnabled(this))) {
+            HardcoreTransition.NONE -> Unit
+            HardcoreTransition.DROP_TO_CASUAL -> {
+                sessionHardcore = false
+                TacoBoyLog.d(TAG, "Hardcore Mode turned off mid-session: casual from now")
+            }
+            HardcoreTransition.RESET_INTO_HARDCORE -> {
+                // A pending reload (a ROM switch picked in the library, whose result is
+                // delivered just before this) already loads fresh, and in the new mode.
+                if (intent.hasExtra(EXTRA_FORCE_RELOAD_ROM_URI)) return
+                TacoBoyLog.d(TAG, "Hardcore Mode turned on mid-session: reloading the game")
+                Toast.makeText(this, R.string.hardcore_mode_reset_toast, Toast.LENGTH_LONG).show()
+                quickMenuPanel.visibility = View.GONE
+                setIntent(Intent(intent).putExtra(EXTRA_FORCE_RELOAD_ROM_URI, uri.toString()))
+                recreate()
+            }
+        }
     }
 
     override fun onPause() {
@@ -473,6 +504,7 @@ class TacoBoyActivity : AppCompatActivity() {
         currentGameSystem = system
         currentCore = system.selectedCore(this)
         currentRomUri = uri
+        sessionHardcore = TacoBoyPrefs.isHardcoreModeEnabled(this)
         TacoBoyPrefs.beginRomLoad(this, uri.toString())
         TacoBoyPrefs.recordRomPlayed(this, uri.toString())
         setupRetroView(system, VirtualFile(displayName, pfd))
@@ -512,16 +544,11 @@ class TacoBoyActivity : AppCompatActivity() {
         if (quickMenuPanel.visibility == View.VISIBLE) {
             quickMenuPanel.visibility = View.GONE
         } else {
-            // Hardcore Mode only hides save-states -- SramManager's auto-save and any
-            // in-progress manual SRAM save are completely untouched by this check.
-            if (TacoBoyPrefs.isHardcoreModeEnabled(this)) {
-                saveSlotsContainer.visibility = View.GONE
-                hardcoreModeNote.visibility = View.VISIBLE
-            } else {
-                saveSlotsContainer.visibility = View.VISIBLE
-                hardcoreModeNote.visibility = View.GONE
-                updateSlotLabels()
-            }
+            // Slots stay visible in hardcore: RA's rules allow creating save states there, for
+            // debugging, and forbid only loading them (B8). updateSlotLabels disables Load;
+            // onLoadSlot enforces it. SRAM saves are untouched either way.
+            hardcoreModeNote.visibility = if (sessionHardcore) View.VISIBLE else View.GONE
+            updateSlotLabels()
             updateFastForwardToggleLabel()
             updateAchievementTrackingToggle()
             quickMenuPanel.visibility = View.VISIBLE
@@ -602,15 +629,14 @@ class TacoBoyActivity : AppCompatActivity() {
             val lastModified = SaveStateManager.lastModified(this, romId, slot)
             val label = slotLabels[slot - 1]
             val loadButton = slotLoadButtons[slot - 1]
-            if (lastModified != null) {
-                label.text = getString(R.string.quick_menu_slot_saved, slot, dateFormat.format(Date(lastModified)))
-                loadButton.isEnabled = true
-                loadButton.alpha = 1f
+            label.text = if (lastModified != null) {
+                getString(R.string.quick_menu_slot_saved, slot, dateFormat.format(Date(lastModified)))
             } else {
-                label.text = getString(R.string.quick_menu_slot_empty, slot)
-                loadButton.isEnabled = false
-                loadButton.alpha = 0.4f
+                getString(R.string.quick_menu_slot_empty, slot)
             }
+            val loadable = lastModified != null && !sessionHardcore
+            loadButton.isEnabled = loadable
+            loadButton.alpha = if (loadable) 1f else 0.4f
         }
     }
 
@@ -626,6 +652,13 @@ class TacoBoyActivity : AppCompatActivity() {
     }
 
     private fun onLoadSlot(slot: Int) {
+        // The rule itself, not just the disabled button. RA auto-fails an emulator whose only
+        // guard is UI (audit B4), and this is the one path by which a state reaches the core.
+        if (sessionHardcore) {
+            TacoBoyLog.e(TAG, "Refused to load save state slot $slot: hardcore session")
+            Toast.makeText(this, R.string.quick_menu_load_blocked_hardcore, Toast.LENGTH_SHORT).show()
+            return
+        }
         val romId = currentRomIdentifier ?: return
         val data = SaveStateManager.load(this, romId, slot) ?: return
         val ok = retroView?.unserializeState(data) ?: false

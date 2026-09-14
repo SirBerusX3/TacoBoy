@@ -16,9 +16,9 @@ import kotlinx.coroutines.withContext
  * long-press), fetches achievement trigger definitions, activates them in the native
  * rc_runtime_t runtime (GLRetroView.loadAchievements -> LibretroDroid, see
  * libretrodroid.cpp/achievements.cpp), then listens for unlock events to announce and
- * submit. Softcore only: hardcore mode needs disabling save-states while tracking, which
- * conflicts with this app's existing save-state feature, so it's out of scope for this
- * pass.
+ * submit. Softcore only: Hardcore Mode now enforces RA's rules on save-state loading and
+ * mode switching (TacoBoyActivity.sessionHardcore), but unlocks are still submitted with
+ * hardcore = 0 -- see RETROACHIEVEMENTS-COMPLIANCE.md for what remains before that changes.
  *
  * Gated on a *second*, separate login beyond the identification-only username+API-key
  * pair every other RA feature in this app needs (Settings' "Live Tracking" section) --

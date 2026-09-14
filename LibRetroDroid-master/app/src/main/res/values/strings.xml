@@ -97,7 +97,7 @@
     <string name="quick_menu_load">Load</string>
     <string name="quick_menu_reset">Reset</string>
     <string name="quick_menu_exit_to_library">Exit to Library</string>
-    <string name="quick_menu_hardcore_note">Save states are disabled while Hardcore Mode is on, per RetroAchievements\' rules. Your SRAM/cart save is unaffected. Turn this off in Settings → Achievements.</string>
+    <string name="quick_menu_hardcore_note">Hardcore Mode: you can still save states, but not load them, per RetroAchievements\' rules. Your SRAM/cart save is unaffected. Turn this off in Settings → Achievements.</string>
     <string name="quick_menu_fast_forward_off">Fast Forward: Off</string>
     <string name="quick_menu_fast_forward_on">Fast Forward: On</string>
     <string name="quick_menu_info">Info</string>
@@ -111,6 +111,8 @@
     <string name="quick_menu_slot_saved">Slot %1$d — %2$s</string>
     <string name="quick_menu_save_failed">Couldn\'t write save state (storage full?)</string>
     <string name="quick_menu_load_failed">Couldn\'t load that save state</string>
+    <string name="quick_menu_load_blocked_hardcore">Save states can\'t be loaded in Hardcore Mode</string>
+    <string name="hardcore_mode_reset_toast">Hardcore Mode is on: restarting the game, as RetroAchievements requires</string>
     <string name="library_boxart_up_to_date">Box art already up to date</string>
     <string name="library_boxart_downloading">Downloading art for %1$d titles…</string>
     <string name="library_boxart_done">Box art download finished</string>
@@ -348,7 +350,7 @@
     <string name="achievements_list_load_failed">Couldn\'t load achievements — check your connection and try again.</string>
     <string name="settings_live_tracking_note">Unlocks achievements automatically as you play and reports them to RetroAchievements. Needs a separate login from the one above — RetroAchievements only accepts your account password (not the Web API key) for this. Your password is used once to sign in and is never stored; only the resulting session stays saved.</string>
     <string name="settings_hardcore_mode_label">Hardcore Mode</string>
-    <string name="settings_hardcore_mode_note">Disables the quick menu\'s save-state slots, per RetroAchievements\' Hardcore rules — your SRAM/cart save (auto-save and manual) is completely unaffected. This only hides the in-game save-state UI; it doesn\'t yet change how achievement unlocks are reported to RetroAchievements.</string>
+    <string name="settings_hardcore_mode_note">Follows RetroAchievements\' Hardcore rules: save states can still be created but not loaded, and turning this on while a game is running restarts that game when you return to it, so progress since your last in-game save is lost. Turning it off takes effect straight away. Your SRAM/cart save (auto-save and manual) is unaffected. This doesn\'t yet change how achievement unlocks are reported to RetroAchievements.</string>
     <string name="settings_test_connection_button">Test Connection</string>
     <string name="settings_test_connection_success">Connected as %1$s</string>
     <string name="settings_test_connection_failed">Connection failed — check your Web API key above</string>
