@@ -438,6 +438,17 @@ class TacoBoyActivity : AppCompatActivity() {
         }
 
         if (lastRom != null && TacoBoyPrefs.isResumeOnLaunchEnabled(this)) {
+            // RetroAchievements requires a resumed session to drop to casual (audit B6). This
+            // resume boots fresh rather than restoring a state, but a session that starts
+            // itself is still not one the player chose to begin in hardcore, so in hardcore
+            // it does not start at all. lastRom is kept: the player picks the game from the
+            // library, and resuming works again as soon as hardcore is off. Explicit reloads
+            // (Reset, a ROM switch) are the forcedRom branch above and are unaffected.
+            if (TacoBoyPrefs.isHardcoreModeEnabled(this)) {
+                TacoBoyLog.d(TAG, "Not resuming the last game on launch: Hardcore Mode is on")
+                showRomPickerPrompt(getString(R.string.rom_picker_hardcore_no_resume))
+                return
+            }
             if (loadRom(Uri.parse(lastRom))) {
                 hideRomPickerPrompt()
                 return

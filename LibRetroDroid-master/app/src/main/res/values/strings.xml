@@ -148,6 +148,7 @@
     <string name="game_menu_art_resetting">Redownloading box art…</string>
     <string name="game_menu_hidden">Hidden. Long-press won\'t bring it back yet — clearing app data will.</string>
     <string name="game_menu_rename_hint">Display name</string>
+    <string name="rom_picker_hardcore_no_resume">Hardcore Mode is on, so your last game wasn\'t resumed automatically, as RetroAchievements requires. Pick it from the library to start it in hardcore.</string>
     <string name="rom_picker_crash_recovered">That ROM crashed last time, so it wasn\'t reopened automatically. Pick something from the library.</string>
     <string name="rom_picker_last_rom_missing">Your last ROM couldn\'t be found — it may have been moved, deleted, or its folder permission was revoked. Pick something from the library.</string>
     <string name="rom_picker_rom_unavailable">That ROM couldn\'t be opened — it may have been moved or deleted.</string>
@@ -244,7 +245,7 @@
     <string name="settings_show_fps_label">Show FPS</string>
     <string name="settings_show_fps_note">Shows a frame-rate counter in the top corner of the game screen — useful for checking performance. Takes effect the next time a game is loaded.</string>
     <string name="settings_resume_on_launch_label">Resume last game on launch</string>
-    <string name="settings_resume_on_launch_note">When off, opening TacoBoy always shows the ROM prompt/library instead of jumping straight back into your last game — you can still resume it manually from the Library screen.</string>
+    <string name="settings_resume_on_launch_note">When off, opening TacoBoy always shows the ROM prompt/library instead of jumping straight back into your last game — you can still resume it manually from the Library screen. Hardcore Mode turns this off while it is on, as RetroAchievements requires.</string>
     <!-- Plain-English explanations for the System tab's per-core options, shown collapsed
          behind each row's info button (see CoreOptions.descriptionRes). Written for someone
          who has never met a libretro core option: what it changes, what it costs, and when
@@ -351,7 +352,7 @@
     <string name="achievements_list_load_failed">Couldn\'t load achievements — check your connection and try again.</string>
     <string name="settings_live_tracking_note">Unlocks achievements automatically as you play and reports them to RetroAchievements. Needs a separate login from the one above — RetroAchievements only accepts your account password (not the Web API key) for this. Your password is used once to sign in and is never stored; only the resulting session stays saved.</string>
     <string name="settings_hardcore_mode_label">Hardcore Mode</string>
-    <string name="settings_hardcore_mode_note">Follows RetroAchievements\' Hardcore rules: save states can still be created but not loaded, and turning this on while a game is running restarts that game when you return to it, so progress since your last in-game save is lost. Turning it off takes effect straight away. Your SRAM/cart save (auto-save and manual) is unaffected. This doesn\'t yet change how achievement unlocks are reported to RetroAchievements.</string>
+    <string name="settings_hardcore_mode_note">Follows RetroAchievements\' Hardcore rules: save states can still be created but not loaded, and turning this on while a game is running restarts that game when you return to it, so progress since your last in-game save is lost. Turning it off takes effect straight away. While it is on, TacoBoy won\'t resume your last game on launch. Your SRAM/cart save (auto-save and manual) is unaffected. This doesn\'t yet change how achievement unlocks are reported to RetroAchievements.</string>
     <string name="settings_test_connection_button">Test Connection</string>
     <string name="settings_test_connection_success">Connected as %1$s</string>
     <string name="settings_test_connection_failed">Connection failed — check your Web API key above</string>

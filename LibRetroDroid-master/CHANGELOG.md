@@ -5,6 +5,34 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (no resume on launch in hardcore — roadmap 6.1.5)
+
+**With Hardcore Mode on, TacoBoy no longer resumes the last game on launch.** It shows the
+library prompt instead, saying why, and keeps the last game for the player to pick. Resuming
+works again as soon as hardcore is off. That settles compliance audit B6, "a resumed session
+must drop to casual", which the hardcore entry below left open.
+
+**Why not resume and drop to casual, which is what B6 literally says.** TacoBoy's resume
+boots the game fresh with its SRAM; it does not restore a state. Dropping it to casual would
+mean the app silently starting a casual game while the player's setting says hardcore, and
+the HARDCORE badge would then be absent for a reason nobody asked for. Not starting anything
+satisfies the rule under either reading and leaves the choice with the player: pick the game
+and it starts in hardcore, from boot, like any other deliberate start. Decided with the user.
+
+**Only the launch-time resume is affected.** Reset and ROM switches reload through
+`EXTRA_FORCE_RELOAD_ROM_URI`, a branch ahead of this one, and are explicit player actions.
+The same launch path also runs when Android rebuilds the Activity for a change it does not
+handle itself -- a locale or font-size change, or restoring after process death. In hardcore
+those now land at the prompt rather than rebooting the game. Theme changes and controller
+connects are in `configChanges` and never reach it.
+
+The Resume on Launch and Hardcore Mode notes in Settings both say this now.
+
+**Verified on the SM-S938B**, with Hardcore Mode on and Resume on Launch on: a cold launch
+logged "Not resuming the last game on launch: Hardcore Mode is on" and showed the new prompt
+with no game running; picking the game from the library then started it in hardcore with the
+badge showing. The resume path with hardcore off is unchanged code and was not re-run.
+
 ## 2026-09-14 (HARDCORE badge during play — roadmap 6.1.3)
 
 **A hardcore game now says so on screen**: a red HARDCORE badge at the top centre, just

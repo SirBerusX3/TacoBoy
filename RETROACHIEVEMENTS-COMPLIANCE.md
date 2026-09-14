@@ -36,7 +36,7 @@ is a feature decision to revisit, not a bug.
 | B3 | Slowdown and frame advance disabled | ✅ | Neither exists. Fast-forward is speed **up**; B lists only slowdown and frame advance, and G repeats "rewind/slo-mo/frame advance" — so fast-forward appears permitted. Worth confirming with RA rather than assuming |
 | B4 | **Loading save states ALWAYS blocked** | ✅ | Since 2026-09-14. `TacoBoyActivity.onLoadSlot` refuses to load while the running game is hardcore, before the state reaches the core; the disabled Load button is only the visible half. Seen on device: Load disabled in hardcore, enabled again once hardcore is turned off |
 | B5 | Rich Presence/Leaderboards cannot be disabled in hardcore | N/A | Neither exists yet |
-| B6 | **Resume/quick-resume must drop to Casual** | ❌ | "Resume on Launch" restores the last ROM with no mode change |
+| B6 | **Resume/quick-resume must drop to Casual** | ✅ | Since 2026-09-14, by not resuming at all in hardcore: "Resume on Launch" leaves a hardcore player at the library prompt, with the last game kept for them to pick. Its resume boots fresh rather than restoring a state, so "drop to casual" would mean silently starting a casual game the player never chose; not starting one is the stricter reading. Seen on device |
 | B7 | **Casual → hardcore mid-session must force a full game reset** | ✅ | Since 2026-09-14. A running game keeps the mode it loaded in (`sessionHardcore`); returning to it with the preference newly on reloads it through the Reset path (`enforceHardcoreTransition`). Hardcore → casual applies at once, as allowed. Seen on device both ways |
 | B8 | States creatable in hardcore but not loadable | ✅ | Since 2026-09-14. Slots stay visible with Save enabled and Load disabled; a save in hardcore was seen to update its slot |
 | B9 | No memory editors/debuggers/TAS | ✅ | None exist |
@@ -105,7 +105,7 @@ and loses nothing.
    through the `EXTRA_FORCE_RELOAD_ROM_URI` reload path as planned
 3. ~~On-screen hardcore indicator (E2) — same pattern as the TURBO badge~~ — done 2026-09-14
 4. ~~Build the user agent from `versionName` + Android version + active core (C1)~~ — done 2026-09-14
-5. Resume-on-launch drops to casual (B6)
+5. ~~Resume-on-launch drops to casual (B6)~~ — done 2026-09-14, as no resume in hardcore
 6. Upstream links in the About licence list (F2)
 
 **Medium:**
