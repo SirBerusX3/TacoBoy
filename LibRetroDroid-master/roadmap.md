@@ -1,716 +1,257 @@
-Phases:
-Phase 0 – Foundation (done / nearly done)
-Phase 1 – Core emulation loop (v0.1 MVP)
-Phase 2 – ROM & core management (v0.2)
-Phase 3 – Polish & handheld UX (v0.3)
-Phase 4 – Hardening & release prep (v1.0)
+# TacoBoy roadmap
+
+Rewritten 2026-09-14, at `versionName 0.2.1`. The previous roadmap (2026-08-14) was never
+updated as work landed; its Phases 0–4 are summarised below against what actually shipped,
+and Phases 5–7 are new. `CHANGELOG.md` is the record of what was done and why; this file is
+what is still to do.
+
+| Phase | Target | Status |
+|---|---|---|
+| 0 – Foundation | — | Done |
+| 1 – Core emulation loop | v0.1 | Done |
+| 2 – ROM and core management | v0.2 | Done, except NES (carried into Phase 5) |
+| 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
+| 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
+| **5 – Finish what's open** | **v0.3** | Not started |
+| **6 – Achievements done properly** | **v0.4** | Not started |
+| **7 – Reach** | **v1.0** | Not started |
+
+## Principles
+
+These held through Phases 0–4 and new work should keep to them.
+
+- **Built for the Pocket Taco.** Portrait, clamp-on, D-pad + ABXY + shoulders, no analog
+  sticks. A system is added because its controls fit that, not because a core exists.
+- **Nothing half-wired.** A system is listed only if its core ships and every path through
+  it works. Options found to be inert are removed rather than shown.
+- **Cores ship in the APK.** Each is built from a recorded upstream commit with 16 KB page
+  alignment, so it can be regenerated rather than only replaced.
+- **Verified, and say how.** Every CHANGELOG entry states whether a change was compiled,
+  run on an emulator, run on a device, or run with a real Pocket Taco.
+
+---
+
+## Phases 0–4: what shipped
+
+### Phase 0 – Foundation
+Done. `TacoBoyActivity`, the occlusion zone and the persisted boundary handle, run on a real
+device on 2026-08-14.
+
+### Phase 1 – Core emulation loop (v0.1)
+Done.
+- **1.1 ROM selection** — SAF folder picker, per-system folders, last ROM remembered.
+- **1.2 Quick menu** — save states (4 slots per ROM), load, reset (a full core reload),
+  exit, plus fast forward and achievement tracking toggles.
+- **1.3 Aspect and scaling** — correct aspect per system, integer scaling, per-system shaders.
+- **1.4 Input** — Pocket Taco and generic controllers, remappable bindings with presets.
+
+### Phase 2 – ROM and core management (v0.2)
+- **2.1 Multi-system** — done: ten systems across seven cores. **NES was never added**, and
+  is Phase 5.1.
+- **2.2 Core downloader** — **declined.** Cores ship in the APK instead: every core is
+  pinned to a known-good, 16 KB-aligned build, with no network step before first play.
+- **2.3 Library UI** — done: grid and list, search, sort by name, system, recently played
+  and most played.
+
+### Phase 3 – Polish and handheld UX
+- **3.1 Box art** — done, from libretro's thumbnail server, cached locally. Online metadata
+  (year, genre) is parked; see below.
+- **3.2 Handheld mode** — done: Pocket Taco auto-detected over Bluetooth with its controller
+  preset applied, and a first-run hint on the boundary handle.
+- **3.3 Performance** — profiled; see `PROFILING.md`. Every core has headroom, the heaviest
+  (Beetle PSX HW) at ~3.4x real time. **Battery was not measured**, because the phone was
+  on USB power. That is Phase 5.4.
+
+### Phase 4 – Hardening
+- **4.1 Crash handling** — done: crashes written to disk, bad ROMs and missing BIOS refused
+  cleanly, the library always reachable.
+- **4.2 Settings** — done: core per system (PS1 is the only system with a choice), video,
+  audio latency, bindings, turbo. No resampler option, because libretrodroid has exactly one.
+- **4.3 Onboarding** — the "install cores" flow no longer applies. Replaced by the About tab:
+  licences, source link, Copy Diagnostics. **In-app help is still to do**, as Phase 5.6.
+- **4.4 Testing and feedback** — released publicly as v0.2.0 and v0.2.1. No structured
+  feedback yet; that is Phase 7.5.
+
+---
+
+## Phase 5 – Finish what's open (v0.3)
+
+**Goal:** close every gap the first roadmap left, and make room for the library to grow.
+
+### 5.1 NES
+- Build a NES core from source at a recorded commit, with the 16 KB linker flags, following
+  the recipe in the 2026-09-11 CHANGELOG entry. Candidates: **FCEUmm** (light, very widely
+  used) or **Mesen** (more accurate, heavier). Choose on size, accuracy and whether it builds
+  cleanly with NDK 26.1.
+- Record its licence in the About tab, and check whether it is non-commercial.
+- Add `GameSystem` entry, extensions (`.nes`, `.fds` only if FDS BIOS handling is built),
+  thumbnail folder, on-screen pad layout (D-pad, A, B, Select, Start), bindings.
+- Verify its option keys against the binary, as was done for the six rebuilt cores.
+
+**Verification:** `tools-check-16kb.sh` passes; a game plays on device with picture, sound,
+save states and box art; RetroAchievements identifies it.
+
+### 5.2 Sega CD / Mega CD
+- Genesis Plus GX already emulates it; no new core is needed.
+- It was left out because it needs a BIOS and multi-file content the app did not model for
+  Genesis. PS1 has since built both — BIOS import and region detection, `.cue`/`.chd`
+  handling — so this is reuse, not new infrastructure. Check how much of it generalises.
+- Mega CD BIOS detection by hash, per region, alongside the PS1 list.
+
+**Verification:** a `.chd` and a `.cue`/`.bin` game both boot; a missing BIOS is refused
+cleanly, not a black screen.
+
+### 5.3 Library tabs that scale
+- The tab row has been tightened repeatedly and "buys room for one or two more systems at
+  most". NES
+  and Sega CD make twelve. Redesign before adding them, not after.
+- Options to weigh: a system dropdown, a scrolling chip row, or hiding systems with no ROM
+  folder set.
+
+**Verification:** twelve systems usable on the SM-S938B and on a narrower phone, with no
+wrapped or clipped labels.
+
+### 5.4 Battery
+- Measure drain off USB power, over a 1–2 hour session, at fixed brightness.
+- Compare with the boundary occlusion on and off. The README says the black zone reduces
+  power use; this is the test that shows whether and by how much.
+- At least one light core (Gambatte) and one heavy one (Beetle PSX HW).
 
-Each phase lists:
-Goals
-Concrete tasks
-Verification criteria
-Notes / risks
-------------------------------------------------
-Phase 0 – Foundation (status: mostly complete)
-Goal: Prove the stack builds, runs, and can display a game with a configurable black zone.
+**Verification:** figures recorded in `PROFILING.md` with method, and the README claim either
+backed by the number or reworded.
 
-Completed / in progress
-Confirmed Pocket Taco is standard Bluetooth HID; no custom protocol needed.
+### 5.5 16 KB on real hardware
+- Run on an arm64 phone with 16 KB pages. Everything so far is the page-size check on every
+  library plus an x86_64 emulator running arm64 code translated.
+- Either the owner's phone after a 16 KB update, or a user report whose Copy Diagnostics
+  shows `Page size: 16 KB` with no "translated" note.
 
-Created com.tacoboy package separate from com.swordfish.libretrodroid.
+**Verification:** every system launches with no compat-mode dialog on that device.
+
+### 5.6 In-app help
+- A Help screen reachable from Settings and the library: using the Pocket Taco, adding ROMs
+  and BIOS files, the boundary handle, save states versus SRAM saves, what softcore means.
+- Short, and fact-checked against the app the way the settings notes were on 2026-09-10.
 
-Implemented TacoBoyActivity:
+**Verification:** a new user can get from install to playing without the README.
 
-Edge‑to‑edge, hides system bars.
+**Exit criteria for v0.3:** NES and Sega CD playable; the library handles twelve systems;
+battery measured; 16 KB confirmed on hardware; help screen in place.
 
-ConstraintLayout with:
-
-gamecontainer (top) for GLRetroView.
-
-occlusion_zone (bottom, black, touch‑swallowing).
-
-Draggable boundary_handle persisted via TacoBoyPrefs.
-
-Hardcoded mGBA core + sample ROM path.
-
-Input forwarding via onKeyDown/onKeyUp/onGenericMotionEvent.
-
-Manifest: TacoBoyActivity as MAIN/LAUNCHER, locked to portrait.
-
-Build verified: ./gradlew.bat :app:compileDebugKotlin succeeds.
-
-Remaining in Phase 0
-Run on a real device (even without Pocket Taco initially):
-
-Verify:
-
-App launches.
-
-GLRetroView renders the sample ROM.
-
-Boundary handle moves and persists.
-
-Occlusion zone is black and swallows touch.
-
-Confirm orientation feels right with a phone held vertically (simulate clamp with your hand).
-
-Exit criteria for Phase 0:
-
-Phase 1 – Core emulation loop (v0.1 MVP)
-Goal: A usable “demo” that:
-
-Lets you pick one system (e.g., GBA).
-
-Lets you pick a ROM from a folder.
-
-Runs the game with:
-
-Correct aspect / scaling.
-
-Pocket Taco–friendly layout.
-
-Basic save/load/exit.
-
-No library UI yet; just “pick file → play”.
-
-1.1. Core & ROM selection (minimal)
-Tasks:
-
-Add a simple “launcher” screen before TacoBoyActivity:
-
-Options:
-
-“Select ROM folder” (use Intent.ACTION_OPEN_DOCUMENT_TREE).
-
-“Select core” (for v0.1, you can hardcode mGBA and skip this).
-
-Store selected folder path(s) in TacoBoyPrefs.
-
-In TacoBoyActivity:
-
-On first launch with no ROM selected, show a small overlay hint:
-
-“Tap here to select a ROM folder” → opens folder picker.
-
-Once a folder is chosen:
-
-Scan for .gba files (for mGBA).
-
-Show a simple list dialog to pick a ROM.
-
-Launch the selected ROM with the mGBA core.
-
-Verification:
-
-First run:
-
-App prompts for ROM folder.
-
-After selecting, you see a list of GBA ROMs.
-
-Picking one starts the game in GLRetroView.
-
-Subsequent runs:
-
-Last ROM (or folder) is remembered.
-
-Game starts directly or with a single tap.
-
-1.2. Basic in‑game menu
-Tasks:
-
-Implement a minimal quick menu accessible via:
-
-A controller button combo (e.g., Select + Start, or a dedicated “M” button if you map it).
-
-Or an on‑screen button in the game area (small, near the top).
-
-Menu options:
-
-Save state.
-
-Load state.
-
-Reset game.
-
-Exit to launcher.
-
-Wire these to LibretroDroid’s APIs for save/load/reset.
-
-Verification:
-
-In‑game:
-
-Pressing the combo opens the menu.
-
-Each option works reliably.
-
-Menu dismisses cleanly and returns to gameplay.
-
-1.3. Aspect ratio & scaling
-Tasks:
-
-Ensure the game surface:
-
-Maintains correct aspect ratio for the system (e.g., 3:2 for GBA).
-
-Scales within gamecontainer without distortion.
-
-Options:
-
-“Fit to width” vs “Fit to height” vs “Stretch” (you can start with one mode).
-
-Make sure black bars (if any) appear within the game area, not under the occlusion zone.
-
-Verification:
-
-Games look correct (no stretching).
-
-Changing orientation (if you temporarily allow it) doesn’t break layout.
-
-1.4. Input sanity check
-Tasks:
-
-Test with:
-
-Pocket Taco (when you have it).
-
-Any other Bluetooth controller (as proxy).
-
-Verify:
-
-All buttons map correctly.
-
-No missed key events.
-
-Analog input (if relevant) works via onGenericMotionEvent.
-
-Verification:
-
-Play a game for several minutes with no input glitches.
-
-Exit criteria for Phase 1 (v0.1):
-
-You can:
-
-Select a ROM folder.
-
-Pick a GBA ROM.
-
-Play it with correct layout and input.
-
-Save/load/exit via a quick menu.
-
-The boundary handle works and feels usable.
-
-You consider this “good enough to share with a friend for testing”.
-
-Phase 2 – ROM & core management (v0.2)
-Goal: Turn TacoBoy from a “single‑system demo” into a practical multi‑system frontend.
-
-2.1. Multi‑system support
-Tasks:
-
-Extend ROM scanner to support multiple extensions:
-
-.gba, .gb, .gbc, .nes, .sfc/.smc, etc.
-
-Add a “system” concept:
-
-Map extensions to default cores:
-
-GBA → mGBA
-
-GB/GBC → SameBoy or Gambatte
-
-NES → Nestopia or similar
-
-SNES → Snes9x
-
-Store per‑system core mapping in prefs.
-
-Verification:
-
-Adding a folder with mixed ROMs shows them grouped or tagged by system.
-
-Each ROM launches with the correct core.
-
-2.2. Core downloader / manager
-Tasks:
-
-Integrate core downloading (like RetroArch / Lemuroid):
-
-Fetch core list from RetroArch CDN.
-
-Download .so cores to the appropriate directory.
-
-Show installed vs available cores.
-
-Provide a simple “Install recommended cores” button for:
-
-GBA, GB/GBC, NES, SNES (initially).
-
-Verification:
-
-First run:
-
-App offers to download recommended cores.
-
-After download, those systems are playable.
-
-Core selection UI (even if simple) works.
-
-2.3. ROM library UI
-Tasks:
-
-Replace the simple ROM picker with a proper library screen:
-
-Grid or list of games.
-
-Sorting: by name, system, last played.
-
-Basic search/filter.
-
-Store “last played” and “play count” metadata.
-
-Verification:
-
-You can browse a moderately sized ROM set (hundreds of games) without performance issues.
-
-Launching games from the library works reliably.
-
-Exit criteria for Phase 2 (v0.2):
-
-TacoBoy supports at least 3–4 systems.
-
-Core download/selection is functional.
-
-Library UI is usable for daily play.
-
-Phase 3 – Polish & handheld UX (v0.3)
-Goal: Make TacoBoy feel like a purpose‑built handheld frontend, not just a generic emulator with a black bar.
-
-3.1. Box art & metadata
-Tasks:
-
-Implement box art support:
-
-Use RetroArch thumbnail naming scheme:
-
-thumbnails/<Playlist>/<Game Name>.png .
-
-Provide a “Download box art” action per system or globally.
-
-Optionally integrate with an online DB (TheGamesDB, ScreenScraper) for:
-
-Game names.
-
-Release year.
-
-Genre, etc.
-
-Verification:
-
-Library shows box art grid.
-
-Missing art is clearly indicated; re‑scan works.
-
-3.2. Handheld mode enhancements
-Tasks:
-
-Auto‑detect Pocket Taco (by Bluetooth device name) and:
-
-Enable “handheld mode” automatically.
-
-Optionally show a small toast: “Pocket Taco detected – handheld mode enabled”.
-
-Refine the boundary handle:
-
-Add a small first‑run hint (“Drag to adjust visible area”).
-
-Optionally hide the handle after a few seconds of inactivity, show on touch near the boundary.
-
-Consider:
-
-Hiding the handle entirely in “pure” mode, only accessible via a menu.
-
-Verification:
-
-With Pocket Taco attached, the UX feels seamless.
-
-New users can discover and use the boundary adjustment easily.
-
-3.3. Performance & battery
-Tasks:
-
-Profile:
-
-CPU/GPU usage during gameplay.
-
-Battery drain over a 1–2 hour session.
-
-Optimize:
-
-Rendering resolution / scaling.
-
-Audio buffer sizes.
-
-Background work (disable unnecessary services while in‑game).
-
-Verification:
-
-Smooth gameplay on your target devices.
-
-Acceptable battery life for handheld sessions.
-
-Exit criteria for Phase 3 (v0.3):
-
-TacoBoy feels polished for daily handheld use.
-
-Box art and library UX are pleasant.
-
-Performance is solid on your primary device.
-
-Phase 4 – Hardening & release prep (v1.0)
-Goal: Prepare for broader testing / release (even if just private beta).
-
-4.1. Crash handling & logging
-Tasks:
-
-Add:
-
-Global exception handler.
-
-Basic crash logging (to file or a service).
-
-Ensure:
-
-Core crashes don’t brick the app.
-
-User can always return to the library.
-
-Verification:
-
-Induce errors (e.g., bad ROM, missing BIOS) and confirm graceful handling.
-
-4.2. Settings & configurability
-Tasks:
-
-Expand settings:
-
-Default core per system.
-
-Video options (aspect, scaling, integer scaling).
-
-Audio options (latency, resampler).
-
-Input options (button mappings, turbo).
-
-Keep “handheld mode” defaults sensible.
-
-Verification:
-
-Changing settings has immediate or next‑launch effect as expected.
-
-4.3. Documentation & onboarding
-Tasks:
-
-Add:
-
-A short “Getting started” screen or flow:
-
-Select ROM folder.
-
-Install cores.
-
-Adjust boundary.
-
-In‑app help / FAQ:
-
-How to use with Pocket Taco.
-
-How to add ROMs.
-
-How to update cores.
-
-Verification:
-
-A new user can follow the flow without external docs.
-
-4.4. Testing & feedback
-Tasks:
-
-Share builds with a small group:
-
-Pocket Taco users.
-
-Different phones (sizes, OEMs).
-
-Collect feedback on:
-
-Layout / boundary behavior.
-
-Core compatibility.
-
-Library UX.
-
-Verification:
-
-You have a list of prioritized bugs/feature requests.
-
-Critical issues are fixed before any wider release.
-
-Exit criteria for Phase 4 (v1.0):
-
-You’re comfortable calling it “beta” or “early access”.
-
-Core functionality is stable.
-
-Feedback is broadly positive for the Pocket Taco use case.
-
-Immediate next steps (concrete)
-Given where you are now:
-
-Run on device (Phase 0 completion):
-
-Deploy TacoBoyActivity to your phone.
-
-Verify rendering, boundary drag, persistence.
-
-Design the minimal ROM picker (Phase 1.1):
-
-Decide:
-
-Start with GBA only?
-
-Use folder picker + simple ROM list dialog?
-
-Sketch the UI (even on paper).
-
-Wire core/ROM loading:
-
-Replace the hardcoded sample ROM path with:
-
-Folder selection.
-
-ROM list scan.
-
-Launch selected ROM with mGBA.
-
-System support & controller suitability
-Primary (v0.1): GB, GBC, GBA
-Perfect match for Pocket Taco’s D‑pad + ABXY + shoulders. No analog required.
-
-Secondary (v0.2): NES, SNES, Genesis/Mega Drive, Game Gear/Master System
-Also excellent fits; SNES uses all four face buttons naturally.
-
-Conditional (v0.2+): PS1
-Works for games that don’t require analog sticks. Mark such titles in UI.
-
-Not recommended: N64 and other analog‑heavy systems
-These systems rely on analog sticks and/or complex button layouts that the Pocket Taco does not provide. TacoBoy will not prioritize or optimize for these.
-
-Game Boy / Game Boy Color
-Primary recommendation: Gambatte (gambatte_libretro)
-
-Very accurate GB/GBC emulation.
-
-Light on resources.
-
-Widely used and well‑tested on Android.
-
-Good compatibility across the library.
-
-Alternatives (optional):
-
-SameBoy (sameboy_libretro)
-
-Excellent accuracy, actively developed.
-
-Slightly heavier than Gambatte, but great if you care about cycle‑accurate behavior.
-
-mGBA (mgba_libretro)
-
-Also supports GB/GBC, but primarily known for GBA.
-
-Good if you want one core for GB/GBC/GBA, but Gambatte/SameBoy are often preferred for pure GB/GBC.
-
-TacoBoy default: Gambatte.
-
-Game Boy Advance
-Primary recommendation: mGBA (mgba_libretro)
-
-Best overall GBA core: accurate, fast, actively maintained.
-
-Handles link cable features, RTC, etc.
-
-Runs well on modern Android devices.
-
-Alternatives (optional):
-
-gpSP (gpsp_libretro)
-
-Very lightweight, good for low‑end hardware.
-
-Less accurate than mGBA; some games have quirks.
-
-VBA‑M (vba_m_libretro)
-
-Older, decent compatibility, but generally outclassed by mGBA.
-
-TacoBoy default: mGBA.
-
-NES
-Primary recommendation: Mesen (mesen_libretro)
-
-Extremely accurate NES emulation.
-
-Good feature set (timing options, light gun support, etc.).
-
-Solid on Android.
-
-Alternatives (optional):
-
-FCEUmm (fceumm_libretro)
-
-Lightweight, good compatibility.
-
-Slightly less accurate than Mesen, but fine for most games.
-
-Nestopia (nestopia_libretro)
-
-Older core, still usable, but Mesen is generally preferred now.
-
-TacoBoy default: Mesen.
-
-SNES
-Primary recommendation: Snes9x (snes9x_libretro)
-
-Great balance of accuracy and performance.
-
-Runs well on Android, including mid‑range devices.
-
-Good compatibility across the library.
-
-Alternatives (optional):
-
-bsnes (bsnes_libretro, “bsnes HD Beta” variants)
-
-Higher accuracy (especially for special chips).
-
-More CPU‑intensive; may be overkill for many devices.
-
-Snes9x2010 (snes9x2010_libretro)
-
-Older, lighter core; useful for very low‑end hardware.
-
-TacoBoy default: Snes9x.
-
-Genesis / Mega Drive
-Primary recommendation: Genesis Plus GX (genesis_plus_gx_libretro)
-
-Excellent accuracy and compatibility.
-
-Handles SMS/GG as well in some builds.
-
-Well‑maintained and widely recommended.
-
-Alternatives (optional):
-
-Genesis Plus GX Wide (genesis_plus_gx_wide_libretro)
-
-Same core with widescreen hacks.
-
-PicoDrive (picodrive_libretro)
-
-Lighter, good for low‑end devices; also supports 32X/Sega CD in some builds.
-
-ClownMDemu (clownmdemu_libretro)
-
-Newer, very accurate, but less battle‑tested on Android than Genesis Plus GX.
-
-TacoBoy default: Genesis Plus GX.
-
-PlayStation 1 (conditional support)
-If you add PS1 later:
-
-Primary recommendation: SwanStation (swanstation_libretro)
-
-Modern, actively developed PS1 core.
-
-Good accuracy and performance on Android.
-
-Better than older Beetle/PCSX cores for most users.
-
-Alternatives (optional):
-
-Beetle PSX HW (beetle_psx_hw_libretro)
-
-Hardware‑accelerated, good for upscaling.
-
-Slightly more complex; HW rendering can be picky on some GPUs.
-
-PCSX ReARMed (pcsx_rearmed_libretro)
-
-Older, lighter core; good for very low‑end devices.
-
-TacoBoy default (if/when PS1 is added): SwanStation.
-
-How to expose core choice in TacoBoy
-You don’t need a complex UI up front. A simple, scalable approach:
-
-v0.1–v0.2: system‑level default + optional override
-Settings → Cores:
-
-Per system, show:
-
-“Default core” dropdown (e.g., GBA → mGBA).
-
-Optional: “Alternative cores” list (multi‑select or single‑select).
-
-Per‑game override (later):
-
-In the game’s detail screen or long‑press menu:
-
-“Use custom core” toggle.
-
-If enabled, show a dropdown of available cores for that system.
-
-Data model example:
-
-kotlin
-data class SystemCoreConfig(
-    val systemId: String, // e.g. "gba", "snes"
-    val defaultCoreId: String, // e.g. "mgba"
-    val allowedCoreIds: List<String> // e.g. ["mgba", "gpsp", "vba_m"]
-)
-
-data class GameCoreOverride(
-    val romPath: String,
-    val coreId: String? // null = use system default
-)
-
-This gives you:
-
-A simple default experience (most users never touch core settings).
-
-The ability for power users to tune per‑game when needed.
-
-Practical default config for TacoBoy v0.1
-For your initial release, you could ship with:
-
-GB/GBC: Gambatte
-
-GBA: mGBA
-
-NES: Mesen
-
-SNES: Snes9x
-
-Genesis: Genesis Plus GX
-
-And optionally:
-
-PS1: none in v0.1; add SwanStation in v0.2 if you decide to support it.
-
-You can hard‑code these defaults in TacoBoyPrefs or a small CoreConfig object, then later add UI to change them.
+---
+
+## Phase 6 – Achievements done properly (v0.4)
+
+**Goal:** make achievements correct and clear, and decide on hardcore with the facts in hand.
+The item numbers and section references are from `RETROACHIEVEMENTS-COMPLIANCE.md`.
+
+### 6.1 Cheap fixes (hours each, worth doing regardless of hardcore)
+1. Guard `onLoadSlot` on hardcore mode — a real check, not a hidden button (B4).
+2. Force a game reset when switching casual to hardcore (B7), using the existing
+   `EXTRA_FORCE_RELOAD_ROM_URI` reload path.
+3. On-screen hardcore indicator (E2), same pattern as the TURBO badge.
+4. Add the active core to the user agent (C1).
+5. Resume-on-launch drops to casual (B6).
+6. Upstream links in the About licence list (F2).
+
+### 6.2 Medium
+7. Offline unlock queue with retry (A4) — an unlock earned without signal is not lost.
+8. A real privacy policy (F5). Mostly writing, but it must be exact.
+9. Measured-progress display (A2b), e.g. "37 / 100 coins".
+
+### 6.3 Hardcore (stretch)
+10. Hardcore submission path: `hardcore = 1`, gated on every 6.1 rule holding.
+11. Rich Presence (A3).
+12. Leaderboards (A3).
+
+6.3 is a project in its own right, and section D means eligibility cannot be applied for
+yet regardless. Start it only as a deliberate decision, not because 6.1 went quickly.
+
+**Verification:** each fix exercised on device; the compliance doc's standing table updated
+to match.
+
+**Exit criteria for v0.4:** 6.1 and 6.2 done; a written decision on 6.3.
+
+---
+
+## Phase 7 – Reach (v1.0)
+
+**Goal:** remove what keeps TacoBoy below 1.0, and hear from the people using it.
+
+### 7.1 Raise targetSdk
+- `targetSdk 33` is now the only thing keeping the app off Google Play. Raise it to Play's
+  current minimum and work through each intervening level's behaviour changes, such as
+  edge-to-edge enforcement and predictive back, on device.
+- Whether to publish on Play is a separate decision. Snes9x and Genesis Plus GX are
+  non-commercial, which rules out a paid listing but not a free one.
+
+### 7.2 Upstream fixes worth taking
+From `UPSTREAM.md`, cherry-picked with a reason each:
+- `2f2aff7` — texture unbinding in the shader chain. Small, in `video.cpp`, and an area where
+  a texture-binding problem was already hit.
+- `82ef1a7` / `61425f4` / `e04ef25` — CUT shader refinements. These are Upscale 1–3.
+- Read `4d3427c` (viewport alignment) against the integer scaling work before deciding.
+
+### 7.3 Core option descriptions checked
+- The 61 descriptions are verified to exist and map to live options, but not checked against
+  what each option actually does. Change each on device and confirm the description is true.
+
+### 7.4 Decide the permanent scope
+The CHANGELOG gives three reasons TacoBoy is below 1.0: softcore-only achievements,
+`targetSdk 33`, and arm64 only. 7.1 resolves one. The other two need a decision, recorded
+here:
+- **arm64 only** — keep (32-bit ARM phones are now rare, and it cuts the native build to a
+  quarter) or add ABIs.
+- **Softcore only** — settled by Phase 6's decision on 6.3.
+
+Either answer is fine for 1.0, provided it is a stated choice rather than an unfinished one.
+
+### 7.5 Feedback
+- GitHub issue templates for bugs and system requests, asking for the Copy Diagnostics block.
+- A small group of testers across phone sizes and OEMs, Pocket Taco users first.
+- Keep a prioritised list of what comes back.
+
+**Exit criteria for v1.0:** targetSdk raised; upstream fixes taken or declined with a reason;
+option text verified; permanent scope written down; no known critical issues from testers.
+
+---
+
+## Parked and declined
+
+Considered and deliberately not on the plan. Each can come back with a reason.
+
+| Item | Status | Why |
+|---|---|---|
+| Core downloader | Declined | Bundled cores are pinned, verified and 16 KB-aligned; downloads would give that up. |
+| N64 and other analog-heavy systems | Declined | The Pocket Taco has no analog sticks. |
+| Landscape | Declined | The clamp is held in portrait. |
+| Resampler choice | Declined | libretrodroid has exactly one resampler. |
+| Per-game core override | Parked | Only PS1 has a choice of core. Revisit if a second system gets one. |
+| Online metadata (year, genre) | Parked | Box art covers the library's needs so far. |
+| Auto-hide the boundary handle | Parked | The first-run hint solved discoverability. |
+
+## Candidate systems after Phase 5
+
+All fit the Pocket Taco's controls, and each needs a core built from source like the rest.
+Listed for reference, not commitment.
+
+| System | Core | Note |
+|---|---|---|
+| PC Engine / TurboGrafx-16 | Beetle PCE Fast | Two buttons plus Run/Select. CD titles need a BIOS. |
+| Neo Geo Pocket / Color | Beetle NeoPop | D-pad plus two buttons. |
+| WonderSwan / Color | Beetle Cygne | Has a vertical mode, which suits a portrait clamp. |
+| 32X | PicoDrive | A second Sega core; low demand. |
+| Atari 2600 | Stella | Simple controls. |
+
+## Shipped cores
+
+For reference. Build commits and recipes are in the 2026-09-11 CHANGELOG entry.
+
+| System | Core |
+|---|---|
+| GB, GBC | Gambatte |
+| GBA | mGBA |
+| SNES | Snes9x |
+| Mega Drive, Master System, Game Gear, SG-1000 | Genesis Plus GX |
+| Atari Lynx | Handy |
+| PS1 | SwanStation (default) or Beetle PSX HW |

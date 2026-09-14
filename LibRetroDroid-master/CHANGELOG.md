@@ -5,6 +5,31 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (roadmap rewritten: Phases 5–7)
+
+**Changed:** `roadmap.md` rewritten. No code changes. The 2026-08-14 roadmap had not been
+edited since, so it still described Phase 0 as in progress while the app was publicly released.
+
+**Phases 0–4 now record what shipped** against each original item, checked against this file
+and the code, not assumed. Three gaps turned up that no entry had called out as open:
+
+  - **NES was never added**, despite the old roadmap naming it a v0.2 system with a default
+    core. `GameSystem.kt` says so in a comment; nothing tracked it.
+  - **Battery was never measured.** The 3.3 profiling ran on USB power.
+  - **In-app help (4.3) was never built.** The About tab replaced the getting-started flow,
+    but not the FAQ.
+
+**New phases**, each drawn from open items already written down somewhere in the repo:
+**5** (v0.3) NES, Sega CD, a library tab redesign to fit twelve systems, battery, 16 KB on
+real hardware, help screen; **6** (v0.4) the `RETROACHIEVEMENTS-COMPLIANCE.md` fix list, with
+hardcore as a stretch goal needing its own decision; **7** (v1.0) targetSdk, the upstream
+cherry-picks from `UPSTREAM.md`, verifying the 61 option descriptions, deciding arm64-only
+and softcore-only as permanent scope, and structured feedback.
+
+**Declined and parked items get their own table** (core downloader, N64, landscape,
+resampler choice, per-game core override, online metadata, handle auto-hide), so a future
+session sees they were considered rather than forgotten.
+
 ## 2026-09-11 (diagnostics say when the cores are being translated)
 
 **The 16 KB case has now been observed.** The entry below records `Page size: 16 KB` as
