@@ -278,9 +278,12 @@ class RomLibraryActivity : AppCompatActivity() {
      *  region flag for PS1, a plain tick for Lynx's single valid boot ROM. Read back out of
      *  the detected list rather than re-derived, since detection is now per-system. */
     private fun updateBiosButtonLabel() {
-        val activeFileName = BiosManager.resolveActiveFileName(this, currentSystem)
+        val activeFileNames = BiosManager.activeFileNames(this, currentSystem)
+        // Sega CD can have one BIOS per region in use at once, so every active flag is shown.
         val icon = BiosManager.listDetectedBios(this, currentSystem)
-            .firstOrNull { it.fileName == activeFileName }?.icon
+            .filter { it.fileName in activeFileNames }
+            .joinToString("") { it.icon }
+            .ifEmpty { null }
         biosButton.text = if (icon != null) {
             getString(R.string.library_bios_label_active, icon)
         } else {
@@ -308,13 +311,16 @@ class RomLibraryActivity : AppCompatActivity() {
             return
         }
 
-        val activeFileName = BiosManager.resolveActiveFileName(this, currentSystem)
+        val activeFileNames = BiosManager.activeFileNames(this, currentSystem)
         detected.forEach { bios ->
-            container.addView(biosRow(bios, bios.fileName == activeFileName))
+            container.addView(biosRow(bios, bios.fileName in activeFileNames))
         }
         if (detected.size > 1 && !currentSystem.biosOptional) {
             container.addView(TextView(this).apply {
-                text = getString(R.string.library_bios_multiple_hint)
+                text = getString(
+                    if (currentSystem == GameSystem.SEGA_CD) R.string.library_bios_multiple_hint_sega_cd
+                    else R.string.library_bios_multiple_hint
+                )
                 textSize = 12f
                 alpha = 0.6f
                 setPadding(0, dp(8), 0, dp(4))
@@ -490,7 +496,7 @@ class RomLibraryActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val scanned = withContext(Dispatchers.IO) {
                 RomLibrary.scanRoms(this@RomLibraryActivity, folder)
-                    .filter { GameSystem.forFileName(it.displayName) == system }
+                    .filter { system in GameSystem.candidatesForFileName(it.displayName) }
             }
             // The system may have changed while this scan was in flight — don't clobber a newer selection.
             if (currentSystem != system) return@launch
@@ -632,7 +638,7 @@ class RomLibraryActivity : AppCompatActivity() {
         recyclerView.adapter?.notifyDataSetChanged()
 
         lifecycleScope.launch {
-            withContext(Dispatchers.IO) { BoxArtCache.ensureDownloaded(this@RomLibraryActivity, rom.displayName) }
+            withContext(Dispatchers.IO) { BoxArtCache.ensureDownloaded(this@RomLibraryActivity, rom.displayName, currentSystem) }
             recyclerView.adapter?.notifyDataSetChanged()
         }
     }
@@ -652,6 +658,9 @@ class RomLibraryActivity : AppCompatActivity() {
      * the live-tracking session because the definitions do.
      */
     private fun checkAchievements(rom: RomLibrary.RomEntry) {
+        // Taken now: the hash depends on the system (a .chd is PS1 or Sega CD), and the user
+        // can switch system before the lookup finishes.
+        val system = currentSystem
         val username = TacoBoyPrefs.getRetroAchievementsUsername(this)
         val apiKey = TacoBoyPrefs.getRetroAchievementsApiKey(this)
         if (username == null || apiKey == null) {
@@ -664,7 +673,7 @@ class RomLibraryActivity : AppCompatActivity() {
         lifecycleScope.launch {
             var hash: String? = null
             val gameId = withContext(Dispatchers.IO) {
-                hash = RomHasher.raHash(this@RomLibraryActivity, rom) ?: return@withContext null
+                hash = RomHasher.raHash(this@RomLibraryActivity, rom, system) ?: return@withContext null
                 RetroAchievementsClient.identifyGameId(username, apiKey, hash!!)
             }
             when {
@@ -732,10 +741,12 @@ class RomLibraryActivity : AppCompatActivity() {
 
         Toast.makeText(this, getString(R.string.library_boxart_downloading, missing.size), Toast.LENGTH_SHORT).show()
 
+        // The art folder is the system's, and switching system mid-download must not change it.
+        val system = currentSystem
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 missing.chunked(4).forEach { chunk ->
-                    chunk.map { rom -> async { BoxArtCache.ensureDownloaded(this@RomLibraryActivity, rom.displayName) } }
+                    chunk.map { rom -> async { BoxArtCache.ensureDownloaded(this@RomLibraryActivity, rom.displayName, system) } }
                         .awaitAll()
                 }
             }

@@ -11,7 +11,7 @@ reducing the risk of ghost touches occurring beneath the controller.
 
 There are now also on-screen controls, so the app can still be used without the Pocket Taco.
 
-Eleven systems, one library screen, box art, per-system display shaders, a repositionable
+Twelve systems, one library screen, box art, per-system display shaders, a repositionable
 on-screen pad, and RetroAchievements lookup. Everything is local — ROMs come from a
 folder you grant access to, and nothing is uploaded anywhere.
 
@@ -19,7 +19,7 @@ Status: **pre-release** (`versionName 0.2.1`). Built and tested on arm64 devices
 
 ## Supported systems
 
-Eleven systems across eight core binaries. A system is listed here only if its core `.so`
+Twelve systems across eight core binaries. A system is listed here only if its core `.so`
 actually ships in `jniLibs` — nothing is half-wired.
 
 | System | Short | Core | BIOS |
@@ -33,13 +33,16 @@ actually ships in `jniLibs` — nothing is half-wired.
 | Master System | SMS | Genesis Plus GX | — |
 | Game Gear | GG | Genesis Plus GX | — |
 | SG-1000 | SG | Genesis Plus GX | — |
+| Sega CD / Mega-CD | SCD | Genesis Plus GX | **required**, per region |
 | Atari Lynx | LYNX | Handy | optional |
 | PlayStation | PS1 | SwanStation *or* Beetle PSX HW | **required** |
 
 PS1 is the only system with a choice of core, switchable in Settings. Lynx runs without
-its boot ROM (Handy falls back to an internal HLE one); PS1 genuinely cannot boot without
-a real BIOS, and the library screen distinguishes those two cases rather than showing one
-generic warning. See [BIOSregion.md](BIOSregion.md) for the PS1 filename-to-region map.
+its boot ROM (Handy falls back to an internal HLE one); PS1 and Sega CD genuinely cannot boot
+without a real BIOS, and the library screen distinguishes those two cases rather than showing
+one generic warning. Sega CD takes one BIOS per region, recognised from the file's own header
+whatever it is called, and uses the one matching each disc. PS1 and Sega CD discs are both
+`.chd`, so each system's discs need their own ROM folder. See [BIOSregion.md](BIOSregion.md) for the PS1 filename-to-region map.
 
 ## What it does
 

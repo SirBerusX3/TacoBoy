@@ -1,6 +1,8 @@
 package com.tacoboy
 
 import android.content.Context
+import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.annotation.StringRes
 import com.android.libretrodroid.R
 
@@ -201,6 +203,30 @@ enum class GameSystem(
             ControllerBindings.Target.A, ControllerBindings.Target.B,
         )
     ),
+    /**
+     * Sega CD / Mega-CD, on the Genesis Plus GX binary already shipped for the cartridge Sega
+     * systems. .chd only, like PS1 and for the same reason: a .cue/.bin set is several files,
+     * which the single-file loading model does not handle. The core picks bios_CD_U/E/J.bin by
+     * the disc's region and refuses to boot without it, hence needsBios.
+     *
+     * Its controller is the Genesis pad, so it shares Genesis's six-button layout and labels
+     * (TouchControls). .chd is also PS1's, so which of the two a disc belongs to is decided by
+     * the folder it sits in: see forRom.
+     */
+    SEGA_CD(
+        listOf(CoreDefinition("genesis_plus_gx_libretro_android.so", "Genesis Plus GX")),
+        "Sega - Mega-CD - Sega CD", "SCD",
+        raConsoleId = 9, // RC_CONSOLE_SEGA_CD
+        needsBios = true,
+        relevantControllerTargets = setOf(
+            ControllerBindings.Target.DPAD_UP, ControllerBindings.Target.DPAD_DOWN,
+            ControllerBindings.Target.DPAD_LEFT, ControllerBindings.Target.DPAD_RIGHT,
+            ControllerBindings.Target.A, ControllerBindings.Target.B,
+            ControllerBindings.Target.X, ControllerBindings.Target.Y,
+            ControllerBindings.Target.L1, ControllerBindings.Target.R1,
+            ControllerBindings.Target.START, ControllerBindings.Target.SELECT,
+        )
+    ),
     // .chd only, deliberately — .cue/.bin's sibling-file references don't fit our
     // single-file SAF virtual-file loading model. User's whole collection is
     // already .chd (via CHDroid), so this isn't a real-world limitation for them.
@@ -270,6 +296,7 @@ enum class GameSystem(
             NES -> R.string.system_name_nes
             SNES -> R.string.system_name_snes
             GENESIS -> R.string.system_name_genesis
+            SEGA_CD -> R.string.system_name_sega_cd
             LYNX -> R.string.system_name_lynx
             MASTER_SYSTEM -> R.string.system_name_master_system
             GAME_GEAR -> R.string.system_name_game_gear
@@ -288,7 +315,7 @@ enum class GameSystem(
          *  exactly once, so a new one cannot be missing from the picker. */
         val PICKER_ORDER = listOf(
             GAME_BOY, GAME_BOY_COLOR, GBA, NES, SNES,
-            SG_1000, MASTER_SYSTEM, GENESIS, GAME_GEAR,
+            SG_1000, MASTER_SYSTEM, GENESIS, GAME_GEAR, SEGA_CD,
             LYNX,
             PS1,
         )
@@ -304,8 +331,8 @@ enum class GameSystem(
             // Genesis Plus GX also advertises .bin, which is generic enough to be risky in
             // the abstract -- but the library only ever scans the folder the user picked
             // for this system, so a .bin in the Genesis folder is a Genesis ROM by
-            // construction. (.cue/.iso/.chd are Mega CD and deliberately left out: that
-            // needs a BIOS and multi-file content this app does not model.)
+            // construction. Mega CD's .cue/.iso are left out: multi-file content this app
+            // does not model. Its .chd is supported, below.
             "md" to GENESIS,
             "gen" to GENESIS,
             "smd" to GENESIS,
@@ -317,14 +344,73 @@ enum class GameSystem(
             // a suffix to claim in a folder scan.
             "lnx" to LYNX,
             "lyx" to LYNX,
-            "chd" to PS1,
         )
 
-        val SUPPORTED_EXTENSIONS: Set<String> = EXTENSION_MAP.keys
+        /** Extensions more than one system uses. A .chd is a disc image for either console,
+         *  and nothing in the name says which. */
+        private val SHARED_EXTENSIONS: Map<String, List<GameSystem>> = mapOf(
+            "chd" to listOf(PS1, SEGA_CD),
+        )
 
-        fun forFileName(fileName: String): GameSystem? {
-            return EXTENSION_MAP[fileName.substringAfterLast('.', "").lowercase()]
+        val SUPPORTED_EXTENSIONS: Set<String> = EXTENSION_MAP.keys + SHARED_EXTENSIONS.keys
+
+        /** Every system a file of this name could be for: one, several for a shared extension
+         *  like .chd, or none. */
+        fun candidatesForFileName(fileName: String): List<GameSystem> {
+            val extension = fileName.substringAfterLast('.', "").lowercase()
+            SHARED_EXTENSIONS[extension]?.let { return it }
+            return listOfNotNull(EXTENSION_MAP[extension])
         }
+
+        /**
+         * The system a ROM belongs to. Unambiguous extensions answer directly. A shared one is
+         * settled by the folder the file is in: the system whose chosen ROM folder contains it.
+         * Library scans are per system folder, so a disc in the Sega CD folder is a Sega CD
+         * disc by construction, the same reasoning that lets .bin mean Genesis. If no folder
+         * claims it, the first candidate is used, which is what the extension alone meant
+         * before (PS1 for .chd).
+         */
+        fun forRom(context: Context, uri: Uri, fileName: String): GameSystem? {
+            val candidates = candidatesForFileName(fileName)
+            if (candidates.size <= 1) return candidates.firstOrNull()
+            val documentId = try {
+                DocumentsContract.getDocumentId(uri)
+            } catch (e: Exception) {
+                return candidates.first()
+            }
+            val folderIds = candidates.mapNotNull { system ->
+                val tree = TacoBoyPrefs.getRomFolderUri(context, system) ?: return@mapNotNull null
+                try {
+                    system to DocumentsContract.getTreeDocumentId(Uri.parse(tree))
+                } catch (e: Exception) {
+                    null
+                }
+            }.toMap()
+            return systemForDocument(documentId, candidates, folderIds) ?: candidates.first()
+        }
+
+        /**
+         * The candidate whose folder contains [documentId], preferring the deepest folder when
+         * one is inside another; null if none does. SAF document IDs look like
+         * "primary:Emulation/SEGACD/Game.chd" and a tree's like "primary:Emulation/SEGACD", or
+         * "primary:" for the whole volume. A folder contains an ID only at a path boundary, so
+         * "primary:Emulation/PS1" does not claim "primary:Emulation/PS10/x.chd".
+         */
+        internal fun systemForDocument(
+            documentId: String,
+            candidates: List<GameSystem>,
+            folderDocumentIds: Map<GameSystem, String>,
+        ): GameSystem? = candidates
+            .mapNotNull { system -> folderDocumentIds[system]?.let { system to it } }
+            .filter { (_, folder) ->
+                documentId.startsWith(folder) && (
+                    documentId.length == folder.length ||
+                        folder.endsWith("/") || folder.endsWith(":") ||
+                        documentId[folder.length] == '/'
+                    )
+            }
+            .maxByOrNull { (_, folder) -> folder.length }
+            ?.first
     }
 }
 

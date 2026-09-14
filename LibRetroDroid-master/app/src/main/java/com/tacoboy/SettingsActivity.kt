@@ -73,7 +73,7 @@ private val LICENCES = listOf(
     Licence("Gambatte — Game Boy / Color", "GPL-2.0", "https://github.com/libretro/gambatte-libretro"),
     Licence("FCEUmm — NES", "GPL-2.0", "https://github.com/libretro/libretro-fceumm"),
     Licence("Snes9x — SNES", "Non-commercial", "https://github.com/libretro/snes9x"),
-    Licence("Genesis Plus GX — Genesis / SMS / GG / SG-1000", "Non-commercial", "https://github.com/libretro/Genesis-Plus-GX"),
+    Licence("Genesis Plus GX — Genesis / SMS / GG / SG-1000 / Sega CD", "Non-commercial", "https://github.com/libretro/Genesis-Plus-GX"),
     Licence("Handy — Atari Lynx", "zlib-style", "https://github.com/libretro/libretro-handy"),
     Licence("Beetle PSX HW — PlayStation", "GPL-2.0", "https://github.com/libretro/beetle-psx-libretro"),
     Licence("SwanStation — PlayStation", "GPL-3.0", "https://github.com/libretro/swanstation"),

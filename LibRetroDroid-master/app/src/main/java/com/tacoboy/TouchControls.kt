@@ -238,7 +238,7 @@ class TouchControls @JvmOverloads constructor(
             }
             // Genesis is the extreme case: the RetroPad name and the printed name disagree on
             // every single button, so showing the raw targets would mislabel the whole pad.
-            GameSystem.GENESIS -> when (target) {
+            GameSystem.GENESIS, GameSystem.SEGA_CD -> when (target) {
                 ControllerBindings.Target.Y -> "A"
                 ControllerBindings.Target.B -> "B"
                 ControllerBindings.Target.A -> "C"
@@ -371,7 +371,7 @@ class TouchControls @JvmOverloads constructor(
         val faceR = unit * if (withSticks) 0.060f else 0.068f
         val faceSpread = unit * if (withSticks) 0.122f else 0.135f
 
-        val sixButtonFace = system == GameSystem.GENESIS
+        val sixButtonFace = system == GameSystem.GENESIS || system == GameSystem.SEGA_CD
 
         // Shoulders, outermost first so L1/R1 land under the thumbs' natural reach and
         // L2/R2 (PS1 only) tuck inside them. Skipped entirely on Genesis, where L1/R1 carry

@@ -16,7 +16,28 @@ import org.junit.Test
 class RomHasherTest {
     private fun bytes(vararg values: Int) = ByteArray(values.size) { values[it].toByte() }
 
+    private val SEGA_CD_EXPECTED = "72870af9589f883cba12097911bf9bcf"
+
     private val headered = bytes(0x4C, 0x59, 0x4E, 0x58, 0x00) // "LYNX\0"
+
+    /** rc_hash_sega_cd hashes exactly the first 512 bytes, and only of a real Sega CD header.
+     *  Expected: hashlib.md5(b"SEGADISCSYSTEM  " + bytes(496)).hexdigest(). */
+    @Test
+    fun `Sega CD hashes the 512-byte header of sector 0`() {
+        val sector = ByteArray(2048)
+        "SEGADISCSYSTEM  ".toByteArray(Charsets.US_ASCII).copyInto(sector)
+        sector[600] = 0x55 // past the header, so it must not change the hash
+        assertEquals(SEGA_CD_EXPECTED, RomHasher.segaCdHash(sector))
+    }
+
+    @Test
+    fun `a sector without the Sega CD magic has no hash`() {
+        val sector = ByteArray(2048)
+        "PLAYSTATION     ".toByteArray(Charsets.US_ASCII).copyInto(sector)
+        assertEquals(null, RomHasher.segaCdHash(sector))
+        assertEquals(null, RomHasher.segaCdHash(null))
+        assertEquals(null, RomHasher.segaCdHash(ByteArray(100)))
+    }
 
     /** rc_hash_nes: an iNES "NES\x1a" or fwNES "FDS\x1a" header is 16 bytes and skipped. */
     @Test

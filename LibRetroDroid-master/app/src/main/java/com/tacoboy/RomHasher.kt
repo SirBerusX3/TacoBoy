@@ -34,6 +34,7 @@ object RomHasher {
     private const val SNES_HEADER_MODULUS = 0x2000L
     private const val LYNX_HEADER_SIZE = 64
     private const val NES_HEADER_SIZE = 16
+    private const val SEGA_CD_HEADER_SIZE = 512
     private const val NES_MAGIC_SIZE = 4
     private val INES_MAGIC = byteArrayOf('N'.code.toByte(), 'E'.code.toByte(), 'S'.code.toByte(), 0x1A)
     private val FDS_MAGIC = byteArrayOf('F'.code.toByte(), 'D'.code.toByte(), 'S'.code.toByte(), 0x1A)
@@ -45,9 +46,10 @@ object RomHasher {
         'L'.code.toByte(), 'Y'.code.toByte(), 'N'.code.toByte(), 'X'.code.toByte(), 0,
     )
 
-    fun raHash(context: Context, rom: RomLibrary.RomEntry): String? {
-        val system = GameSystem.forFileName(rom.displayName) ?: return null
-        if (system == GameSystem.PS1) return ps1Hash(context, rom)
+    /** [system] comes from the caller, who always knows it: a .chd alone could be PS1 or Sega CD. */
+    fun raHash(context: Context, rom: RomLibrary.RomEntry, system: GameSystem): String? {
+        if (system == GameSystem.PS1) return chdHash(context, rom, "PS1") { Ps1Hasher.hash(it) }
+        if (system == GameSystem.SEGA_CD) return chdHash(context, rom, "Sega CD") { segaCdHash(ChdDisc.open(it)?.readSector(0)) }
 
         return try {
             val skipBytes = when (system) {
@@ -78,7 +80,21 @@ object RomHasher {
     /** SAF's InputStream is sequential-only, but CHD hunk lookups need real seeks (the
      * hunk map lives at the end of the file, boot executables can be anywhere on the
      * disc) -- openFileDescriptor's fd backs a real seekable FileChannel instead. */
-    private fun ps1Hash(context: Context, rom: RomLibrary.RomEntry): String? {
+    /**
+     * rc_hash_sega_cd (rhash/hash_disc.c): the first 512 bytes of track 1's sector 0, the volume
+     * and ROM headers, which must begin "SEGADISCSYSTEM  " (Saturn's "SEGA SEGASATURN " is also
+     * accepted there). Anything else is not a Sega CD disc and has no hash. Pure, for tests.
+     */
+    internal fun segaCdHash(sector0: ByteArray?): String? {
+        if (sector0 == null || sector0.size < SEGA_CD_HEADER_SIZE) return null
+        val header = sector0.copyOf(SEGA_CD_HEADER_SIZE)
+        val magic = String(header, 0, 16, Charsets.US_ASCII)
+        if (magic != "SEGADISCSYSTEM  " && magic != "SEGA SEGASATURN ") return null
+        val digest = MessageDigest.getInstance("MD5").digest(header)
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun chdHash(context: Context, rom: RomLibrary.RomEntry, label: String, hash: (ChdRandomAccess) -> String?): String? {
         return try {
             context.contentResolver.openFileDescriptor(rom.uri, "r")?.use { pfd ->
                 FileInputStream(pfd.fileDescriptor).channel.use { channel ->
@@ -92,11 +108,11 @@ object RomHasher {
                         }
                         buffer.array()
                     }
-                    Ps1Hasher.hash(source)
+                    hash(source)
                 }
             }
         } catch (e: Exception) {
-            TacoBoyLog.e(TAG, "Failed to hash PS1 CHD ${rom.displayName}", e)
+            TacoBoyLog.e(TAG, "Failed to hash $label CHD ${rom.displayName}", e)
             null
         }
     }

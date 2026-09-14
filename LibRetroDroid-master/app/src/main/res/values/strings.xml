@@ -43,6 +43,7 @@
     <string name="system_name_master_system">Master System</string>
     <string name="system_name_game_gear">Game Gear</string>
     <string name="system_name_sg1000">SG-1000</string>
+    <string name="system_name_sega_cd">Sega CD / Mega-CD</string>
     <string name="system_name_ps1">PlayStation</string>
     <string name="system_picker_button">%1$s ▾</string>
     <string name="system_picker_title">Choose a system</string>
@@ -186,6 +187,7 @@
     <string name="library_bios_status_none_optional">No boot ROM imported — games still run on the core’s built-in one.</string>
     <string name="library_bios_active">Active</string>
     <string name="library_bios_select">Select</string>
+    <string name="library_bios_multiple_hint_sega_cd">Sega CD uses the BIOS for each game\'s own region, so one per region is active at once. Import one for every region you play; tap a BIOS to prefer it for its region.</string>
     <string name="library_bios_multiple_hint">Tap a BIOS to make it active — pick the one matching your games\' region to avoid boot/timing issues.</string>
     <string name="library_bios_dialog_title">%1$s BIOS</string>
     <string name="library_bios_import_action">Import…</string>

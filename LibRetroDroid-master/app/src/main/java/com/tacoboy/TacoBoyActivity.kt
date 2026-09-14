@@ -426,7 +426,7 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
             } catch (e: Exception) {
                 null
             }
-            val crashedSystem = crashedName?.let { GameSystem.forFileName(it) }
+            val crashedSystem = crashedName?.let { GameSystem.forRom(this, Uri.parse(crashedRom), it) }
             CrashLog.record(
                 context = this,
                 summary = "Core died loading ${crashedName ?: "a ROM"} (no first frame)",
@@ -509,7 +509,7 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
         } catch (e: Exception) {
             null
         } ?: return false
-        val system = GameSystem.forFileName(displayName) ?: return false
+        val system = GameSystem.forRom(this, uri, displayName) ?: return false
 
         val pfd = try {
             contentResolver.openFileDescriptor(uri, "r")
@@ -553,7 +553,7 @@ class TacoBoyActivity : AppCompatActivity(), AchievementsSession.Indicators {
         lastLoadFailureMessage = null
         return try {
             val displayName = DocumentFile.fromSingleUri(this, uri)?.name ?: return false
-            val system = GameSystem.forFileName(displayName) ?: return false
+            val system = GameSystem.forRom(this, uri, displayName) ?: return false
             // Kept in step with loadRom's own checks on purpose: this runs before recreate(),
             // and anything loadRom would refuse afterwards would strand the user at a blank
             // picker having killed the game they were playing.

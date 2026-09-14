@@ -132,7 +132,7 @@ class AchievementsSession(
                 val clause = RetroAchievementsClient.coreClause(core.fileName, retroView.getLibraryVersion())
                 coreClause = clause
                 TacoBoyLog.d(TAG, "user agent core segment: $clause")
-                val hash = RomHasher.raHash(context, rom) ?: return@withContext null
+                val hash = RomHasher.raHash(context, rom, gameSystem) ?: return@withContext null
                 fetchOrLoadCached(hash, apiKeyUsername, apiKey, sessionUsername, sessionToken, clause)
             }
 

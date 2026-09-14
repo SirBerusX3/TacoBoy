@@ -24,8 +24,9 @@ import java.util.zip.CRC32
  * BIOS-needing systems instead of at the library folder directly. Ambiguity is eliminated
  * by construction, regardless of how any given core's own auto-detection works internally.
  *
- * Two systems have a BIOS as of 2026-08-23 (PS1 and Lynx), and they are recognised in
- * opposite ways — see BiosSpec for why.
+ * Three systems have a BIOS: PS1 and Lynx (see BiosSpec), and since 2026-09-14 Sega CD, which is
+ * different again: its core wants one BIOS per region at once, so it has its own staging below
+ * rather than a single active file.
  */
 object BiosManager {
     private const val TAG = "TacoBoy.BiosManager"
@@ -86,8 +87,57 @@ object BiosManager {
             detect = { file -> if (isLynxBootRom(file)) "Boot ROM" to "✅" else null },
             stagedFileName = LYNX_BOOT_ROM_FILE,
         )
+        // Staged per region by prepareActiveBios, so stagedFileName is unused here.
+        GameSystem.SEGA_CD -> BiosSpec(
+            detect = { file ->
+                segaCdRegions(file).takeIf { it.isNotEmpty() }?.let { regions ->
+                    regions.joinToString(", ") { it.label } to regions.joinToString("") { it.flag }
+                }
+            },
+            stagedFileName = null,
+        )
         else -> null
     }
+
+    /** Reads only the header, and only of a file the right size, so scanning a library full of
+     *  PS1 BIOS images and other files costs next to nothing. */
+    private fun segaCdRegions(file: File): Set<SegaCdBios.Region> {
+        if (file.length() !in SegaCdBios.VALID_SIZES) return emptySet()
+        return try {
+            val header = ByteArray(SegaCdBios.HEADER_BYTES)
+            val read = file.inputStream().use { input ->
+                var total = 0
+                while (total < header.size) {
+                    val count = input.read(header, total, header.size - total)
+                    if (count < 0) break
+                    total += count
+                }
+                total
+            }
+            SegaCdBios.regions(file.length(), header.copyOf(read))
+        } catch (e: Exception) {
+            TacoBoyLog.e(TAG, "Failed to read candidate Sega CD BIOS ${file.name}", e)
+            emptySet()
+        }
+    }
+
+    /** Which imported file the core will get for each region; see SegaCdBios.assign. */
+    private fun segaCdAssignments(context: Context): Map<SegaCdBios.Region, String> {
+        val files = context.filesDir.listFiles()?.filter { it.isFile } ?: return emptyMap()
+        val detected = files.associate { it.name to segaCdRegions(it) }.filterValues { it.isNotEmpty() }
+        return SegaCdBios.assign(detected, TacoBoyPrefs.getActiveBiosFileName(context, GameSystem.SEGA_CD))
+    }
+
+    /**
+     * Every file a game load will actually hand the core: the one active file for most systems,
+     * or one per region for Sega CD. The BIOS dialog marks these Active.
+     */
+    fun activeFileNames(context: Context, system: GameSystem): Set<String> =
+        if (system == GameSystem.SEGA_CD) {
+            segaCdAssignments(context).values.toSet()
+        } else {
+            setOfNotNull(resolveActiveFileName(context, system))
+        }
 
     /** Length first, so the 512-byte test rejects every ROM and PS1 BIOS in the library
      *  without reading any of them — only a file of exactly the right size is ever hashed. */
@@ -154,6 +204,7 @@ object BiosManager {
             // Lynx, so clear both rather than assuming which one is on disk.
             File(activeBiosDirectory(context), fileName).delete()
             File(activeBiosDirectory(context), LYNX_BOOT_ROM_FILE).delete()
+            SegaCdBios.Region.entries.forEach { File(activeBiosDirectory(context), it.stagedFileName).delete() }
         }
         return deleted
     }
@@ -171,6 +222,7 @@ object BiosManager {
      * what `biosOptional` records.
      */
     fun hasUsableBios(context: Context, system: GameSystem): Boolean {
+        if (system == GameSystem.SEGA_CD) return segaCdAssignments(context).isNotEmpty()
         val fileName = resolveActiveFileName(context, system) ?: return false
         return File(context.filesDir, fileName).isFile
     }
@@ -184,6 +236,21 @@ object BiosManager {
     fun prepareActiveBios(context: Context, system: GameSystem): Boolean {
         val activeDir = activeBiosDirectory(context)
         activeDir.listFiles()?.forEach { it.delete() }
+
+        // Genesis Plus GX picks the file by the disc's region, so every region that has a BIOS
+        // is staged under its own name, not just one.
+        if (system == GameSystem.SEGA_CD) {
+            val assignments = segaCdAssignments(context)
+            return assignments.isNotEmpty() && assignments.all { (region, fileName) ->
+                try {
+                    File(context.filesDir, fileName).copyTo(File(activeDir, region.stagedFileName), overwrite = true)
+                    true
+                } catch (e: Exception) {
+                    TacoBoyLog.e(TAG, "Failed to stage Sega CD BIOS $fileName as ${region.stagedFileName}", e)
+                    false
+                }
+            }
+        }
 
         val fileName = resolveActiveFileName(context, system) ?: return false
         val source = File(context.filesDir, fileName)

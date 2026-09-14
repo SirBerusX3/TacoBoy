@@ -12,7 +12,7 @@ what is still to do.
 | 2 – ROM and core management | v0.2 | Done, except NES (carried into Phase 5) |
 | 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
 | 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
-| **5 – Finish what's open** | **v0.3** | Started: 5.1 and 5.3 done |
+| **5 – Finish what's open** | **v0.3** | Started: 5.1, 5.2 and 5.3 done |
 | **6 – Achievements done properly** | **v0.4** | 6.1 and 6.2 done; 6.3 not started |
 | **7 – Reach** | **v1.0** | Not started |
 
@@ -91,7 +91,7 @@ Done.
 **Verification:** `tools-check-16kb.sh` passes; a game plays on device with picture, sound,
 save states and box art; RetroAchievements identifies it.
 
-### 5.2 Sega CD / Mega CD
+### 5.2 Sega CD / Mega CD — done 2026-09-14 (.chd only)
 - Genesis Plus GX already emulates it; no new core is needed.
 - It was left out because it needs a BIOS and multi-file content the app did not model for
   Genesis. PS1 has since built both — BIOS import and region detection, `.cue`/`.chd`
@@ -134,6 +134,17 @@ backed by the number or reworded.
 - Short, and fact-checked against the app the way the settings notes were on 2026-09-10.
 
 **Verification:** a new user can get from install to playing without the README.
+
+### 5.7 Multi-disc games
+- Night Trap and other multi-disc Sega CD games, and PS1's, load one disc at a time with no way
+  to change disc mid-game (seen by the user, 2026-09-14).
+- libretrodroid already exposes the core's disk-control interface (availableDisks,
+  changeDisk). What is missing is loading every disc of a game together, through an `.m3u`
+  playlist or by grouping a subfolder's discs, and a "Change Disc" entry in the quick menu.
+- Check how SAF-granted `.m3u` entries resolve to sibling files, which the virtual-file model
+  has never had to do.
+
+**Verification:** a two-disc game swaps to disc 2 when it asks, on both PS1 and Sega CD.
 
 **Exit criteria for v0.3:** NES and Sega CD playable; the library switches between all twelve systems;
 battery measured; 16 KB confirmed on hardware; help screen in place.

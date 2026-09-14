@@ -29,11 +29,10 @@ object BoxArtCache {
      * downloaded); false if this title has no matching art, its system
      * isn't supported, or the request failed.
      */
-    fun ensureDownloaded(context: Context, romDisplayName: String): Boolean {
+    fun ensureDownloaded(context: Context, romDisplayName: String, system: GameSystem): Boolean {
         val file = localFile(context, romDisplayName)
         if (file.exists()) return true
 
-        val system = GameSystem.forFileName(romDisplayName) ?: return false
         val nameWithoutExtension = romDisplayName.substringBeforeLast('.')
         val url = "https://thumbnails.libretro.com/" +
             Uri.encode(system.thumbnailFolder) + "/Named_Boxarts/" +

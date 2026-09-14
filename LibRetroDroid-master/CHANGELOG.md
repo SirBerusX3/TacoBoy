@@ -5,6 +5,76 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (Sega CD / Mega-CD — roadmap 5.2)
+
+**TacoBoy plays Sega CD discs**, its twelfth system, on the Genesis Plus GX binary it already
+ships, so no new core. **`.chd` only**, like PS1: a `.cue`/`.bin` set is several files, which the
+single-file loading model does not handle, and the user's collection is `.chd`. Genesis Plus GX
+at `b7e79b3` is built with `HAVE_CHD := 1` and opens discs by path, which is how PS1 discs
+already load. The system shares Genesis's pad, its six-button layout and its relabelling, and
+uses RA console 9 and libretro's "Sega - Mega-CD - Sega CD" box art folder (a known title
+returned 200).
+
+### A .chd could be either console
+
+The extension map sent `.chd` to PS1, and six places decided a file's system from its name
+alone, including the library's per-system scan filter, so a Sega CD folder would have listed
+nothing. Extensions now map to candidates: `.chd` to both PS1 and Sega CD, and every other
+extension to one system. The library keeps a file if the current system is a candidate. Box art
+and RA hashing now take the system from their callers, who always know it, and capture it when
+the action starts, so switching system mid-download cannot mix folders. Where only a file is
+known (loading, resume, the crash record), `GameSystem.forRom` asks which candidate's chosen ROM
+folder holds the file, by SAF document ID: the deepest folder wins, containment counts only at a
+path boundary ("PS1" does not claim "PS10"), and a whole-volume tree ("primary:") counts. With
+no folder claiming it, the first candidate is used, which is what `.chd` meant before. The same
+reasoning already lets `.bin` mean Genesis: scans are per system folder. The consequence, stated
+in the README: PS1 and Sega CD discs need separate folders.
+
+### Achievements hash
+
+`rc_hash_sega_cd` hashes the first 512 bytes of track 1's sector 0, the volume and ROM headers,
+and only when they begin `SEGADISCSYSTEM  `. `RomHasher` reads sector 0 through the existing
+`ChdDisc`, which already returns cooked Mode 1 user data, and hashes the same 512 bytes as a
+pure function. A test checks it against an independently computed MD5 and confirms bytes past
+512 do not count. PS1's CHD path was refactored into a shared `chdHash`.
+
+### BIOS, one per region
+
+Genesis Plus GX reads the disc's region, then loads exactly one of `bios_CD_U.bin`,
+`bios_CD_E.bin` or `bios_CD_J.bin` and refuses to boot without it (`load_bios` in
+`core/loadrom.c`). The existing BIOS model has one active file per system, recognised by name
+for PS1 and by checksum for Lynx. Neither fits: the user's dumps are called
+`eu_mcd1_9210.bin`, `jp_mcd1_9112.bin` and `us_scd1_9210.bin`, and the core needs a file for every
+region at once.
+
+**Recognised by header**, designed against those three dumps pulled from the phone: 128 KB, a
+Mega Drive-format image with "SEGA MEGA DRIVE " at 0x100, the ROM name at 0x120 ("MEGA-CD BOOT
+ROM" / "SEGA-CD BOOT ROM"), and the region letter at 0x1F0 (E, J, U). Their EU and US MD5s match
+the dumps Genesis Plus GX documents. `SegaCdBios.regions` also accepts "SEGA GENESIS" branding,
+512 KB Sega CD 2 dumps, any 0x120 name containing BOOT (covering the CDX and WonderMega variants
+the core itself checks for), and hex region bits (1 Japan, 4 USA, 8 Europe). A PS1 BIOS, also
+512 KB, has none of that header, and a test confirms it is refused. Only the first 0x200 bytes of
+a right-sized file are ever read.
+
+**Staged per region.** `SegaCdBios.assign` gives each region a file made for it alone, else a
+region-free one, preferring the user's tapped choice within a group and otherwise the first by
+name, as every other system resolves its BIOS. `prepareActiveBios` stages each region's file under
+the name the core asks for. The BIOS dialog marks every staged file Active, the toolbar shows all
+their flags, and a Sega CD-specific hint explains the per-region model.
+
+**Verified on the SM-S938B.** The user set the Sega CD folder, and "Check RetroAchievements"
+recognised the discs, the three multi-disc subfolders included. Before BIOS support, the import
+reported "No BIOS files detected", as expected. After it, both imported dumps (EU and US) showed
+Active with their flags, and the toolbar read "BIOS 🇪🇺🇺🇸". Dragon's Lair (USA) then booted to
+the ReadySoft logo (screenshot): the core logged loading 131072 bytes, `bios_active` held
+`bios_CD_E.bin` and `bios_CD_U.bin`, and live tracking activated 34 of 34 achievements. A PS1 disc
+still loaded as PS1 and was identified by RA, so resolution by folder did not disturb it. Nothing
+new is stored or sent, so the privacy policy is unchanged. 12 new tests, 76 passing.
+
+**Play-tested by the user:** picture, sound, controls and saves all worked. As expected, Night
+Trap and the other multi-disc games do not work properly: each disc is its own `.chd` in a
+subfolder and loads on its own, with no way to swap discs mid-game. Added to the roadmap as 5.7.
+
 ## 2026-09-14 (NES, on FCEUmm — roadmap 5.1)
 
 **TacoBoy plays NES cartridges**, its eleventh system and eighth core. Chosen with the user from
