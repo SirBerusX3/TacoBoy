@@ -771,9 +771,10 @@ class TacoBoyActivity : AppCompatActivity() {
             val identifier = currentRomIdentifier ?: return@launch
             val uri = currentRomUri ?: return@launch
             val gameSystem = currentGameSystem ?: return@launch
+            val core = currentCore ?: return@launch
             val session = AchievementsSession(this@TacoBoyActivity, this@TacoBoyActivity, newRetroView)
             achievementsSession = session
-            session.start(RomLibrary.RomEntry(identifier, uri), gameSystem)
+            session.start(RomLibrary.RomEntry(identifier, uri), gameSystem, core)
         }
 
         // Previously unwired entirely — a load failure (bad dump, unsupported

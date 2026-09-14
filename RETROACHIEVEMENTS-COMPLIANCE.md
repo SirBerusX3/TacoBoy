@@ -45,8 +45,8 @@ is a feature decision to revisit, not a bug.
 
 | # | Requirement | Status | Evidence / note |
 |---|---|---|---|
-| C1 | Unique, stable, **incrementing** user agent | ⚠️ | `RetroAchievementsClient.kt:48` sends `TacoBoy/1.0 (Android)`. Unique, but the version is hardcoded and never increments, and the core is not named. Its own comment says the version was hardcoded because the project had no `versionName` — **that changed 2026-08-24**, so this is now a small fix |
-| C1b | Target format | ⚠️ | Wants `EmulatorName/v1.0.0 (OSName 10.0) core_name/v0.5.0`. Core segment is "strongly advised" for multi-core emulators, and TacoBoy ships seven |
+| C1 | Unique, stable, **incrementing** user agent | ✅ | Version from `BuildConfig.VERSION_NAME` since 2026-09-10, so it increments with every release. Was `TacoBoy/1.0 (Android)` before that |
+| C1b | Target format | ✅ | Since 2026-09-14: `TacoBoy/0.2.1 (Android 17) mednafen_psx_hw_libretro_android/0.9.44.1-GLES3_d97afa8`, seen on device. The core segment follows RetroArch's construction and is sent on every call made while a game runs; library and Settings calls send the first two segments only |
 | C2 | No undisclosed history of using another emulator's UA | ✅ | Has always sent its own; never publicly released under any other identity |
 
 ## D. Eligibility timeline
@@ -92,7 +92,7 @@ and loses nothing.
 | Rewind / slo-mo / frame advance in hardcore | ✅ none exist |
 | Gameplay-altering cheats in hardcore | ✅ none exist |
 | Switching to hardcore without a game reset | ⛔ **fails today** (B7) |
-| Non-unique user agent | ✅ unique (though see C1) |
+| Non-unique user agent | ✅ unique, in RA's full format (C1, C1b) |
 | Undisclosed history of another emulator's UA | ✅ |
 | Non-commercial cores + any commercialization | ✅ |
 | Privacy policy with placeholders/contradictions | N/A until one exists — then must be exact |
@@ -104,7 +104,7 @@ and loses nothing.
 2. Force a game reset when switching casual → hardcore (B7, auto-fail); the
    `EXTRA_FORCE_RELOAD_ROM_URI` reload path already does exactly this
 3. On-screen hardcore indicator (E2) — same pattern as the TURBO badge
-4. Build the user agent from `versionName` + Android version + active core (C1)
+4. ~~Build the user agent from `versionName` + Android version + active core (C1)~~ — done 2026-09-14
 5. Resume-on-launch drops to casual (B6)
 6. Upstream links in the About licence list (F2)
 

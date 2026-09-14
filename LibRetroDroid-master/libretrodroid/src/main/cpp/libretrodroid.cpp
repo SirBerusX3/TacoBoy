@@ -103,6 +103,17 @@ void LibretroDroid::resetGlobalVariables() {
     achievements = nullptr;
 }
 
+// The core's self-reported version (retro_system_info::library_version), e.g. "v1.7.4 b7e79b3".
+// TacoBoy puts it in the RetroAchievements user agent, as RetroArch does. Empty with no core.
+std::string LibretroDroid::getLibraryVersion() {
+    std::lock_guard<std::mutex> lock(coreLock);
+    if (!core) return "";
+
+    struct retro_system_info system_info {};
+    core->retro_get_system_info(&system_info);
+    return system_info.library_version != nullptr ? system_info.library_version : "";
+}
+
 int LibretroDroid::availableDisks() {
     return Environment::getInstance().getRetroDiskControlCallback() != nullptr
            ? Environment::getInstance().getRetroDiskControlCallback()->get_num_images()

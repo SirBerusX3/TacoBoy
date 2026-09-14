@@ -5,6 +5,56 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (the achievements user agent names the running core — roadmap 6.1.4)
+
+**RetroAchievements now sees which core a request came from.** Seen in logcat on the SM-S938B,
+resuming a PS1 game:
+
+```
+user agent core segment: mednafen_psx_hw_libretro_android/0.9.44.1-GLES3_d97afa8
+```
+
+so the full header was `TacoBoy/0.2.1 (Android 17) mednafen_psx_hw_libretro_android/0.9.44.1-GLES3_d97afa8`.
+RA accepted it: the same session identified the game, fetched its progress and definitions,
+and activated 44 achievements. That closes compliance audit C1b, which calls the core segment
+"strongly advised" for a multi-core emulator. TacoBoy ships seven.
+
+**Built the way RetroArch builds it, not the way the format line reads.** RA's own example
+user agents come from RetroArch, so `rcheevos_get_user_agent` in RetroArch's
+`cheevos_client.c` was read rather than guessed at: the core's file name without its
+extension, `/`, then the core's self-reported `library_version`, each space turned into an
+underscore. The unit test builds RA's published example,
+`RetroArch/1.20.0 (Android 13.0) genesis_plus_gx_libretro_android/v1.7.4_8ea39ee`, through the
+same two functions and requires it byte for byte. RA's fbneo example's double underscore
+confirms that spaces are replaced one for one rather than collapsed.
+
+**One deliberate departure:** a leading `lib` is dropped, so mGBA reports
+`mgba_libretro_android` rather than its file's `libmgba_libretro_android`. The prefix is only
+there because the file kept an old name (2026-08-24), and it is not what the buildbot or
+RetroArch call that core.
+
+**The version is read from the running core, not recorded in Kotlin.** Hardcoding the version
+strings from the 2026-09-11 rebuild table would have been quicker, and would go stale the next
+time a core is rebuilt, which is exactly the drift the user agent was fixed for on 2026-09-10.
+No existing call exposed it, so libretrodroid gained one: `LibretroDroid::getLibraryVersion`
+calls `retro_get_system_info` under `coreLock`, surfaced as `GLRetroView.getLibraryVersion()`.
+It deliberately skips `runOnEmulationThread`, because a queued event never runs while the view
+is paused and the caller would wait forever. `AchievementsSession` calls it on the IO
+dispatcher, because `retro_run` holds that lock for a frame at a time.
+
+**Only calls made while a game is running carry the core segment**: the four in
+`AchievementsSession`. Library lookups, credential checks and the password login have no core
+loaded and send the first two segments, as RetroArch does with no core. The core is the one
+`TacoBoyActivity` actually loaded, `currentCore`, rather than a fresh read of the preference,
+which could differ from what is running.
+
+Also removed the stale comment that said there was no `versionName` to embed, which stopped
+being true on 2026-08-24.
+
+**Verified:** 6 new tests in `RetroAchievementsClientTest` (37 in all, passing), the new JNI
+symbol present in the built `liblibretrodroid.so`, and on device as above. The `lib`-prefix
+case was covered by the unit test only; no GBA game was launched.
+
 ## 2026-09-14 (roadmap rewritten: Phases 5–7)
 
 **Changed:** `roadmap.md` rewritten. No code changes. The 2026-08-14 roadmap had not been

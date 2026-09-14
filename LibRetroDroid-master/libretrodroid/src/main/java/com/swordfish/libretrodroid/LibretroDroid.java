@@ -130,6 +130,8 @@ public class LibretroDroid {
     public static native void updateVariable(Variable variable);
     public static native Variable[] getVariables();
 
+    public static native String getLibraryVersion();
+
     public static native int availableDisks();
     public static native int currentDisk();
     public static native void changeDisk(int index);

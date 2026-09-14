@@ -44,9 +44,6 @@ object RetroAchievementsClient {
     private const val MEDIA_BASE_URL = "https://media.retroachievements.org"
     private const val BADGE_BASE_URL = "https://i.retroachievements.org/Badge"
     private const val TIMEOUT_MS = 10_000
-    // Connect API docs are explicit that every dorequest.php request needs a User-Agent
-    // identifying the calling frontend — requests without one are rejected. No app version to
-    // embed here (this fork's build.gradle has no versionName), so this is a fixed identifier.
     /** RetroAchievements identifies clients by user agent, and their rules treat a
      *  non-unique one as an auto-fail, so this must stay distinctive AND truthful.
      *  It read "TacoBoy/1.0" until 2026-09-10 while versionName was 0.1.0 -- unique,
@@ -54,11 +51,34 @@ object RetroAchievementsClient {
      *  the field impossible to tie back to a build. Built from BuildConfig now, so it
      *  cannot drift from the manifest again.
      *
-     *  Still missing the active core, which the compliance audit's C1 asks for
-     *  (emulator and core are separate fields in RA's format). That needs the client
-     *  to know which core is loaded and is left for when it does. */
-    private val USER_AGENT =
+     *  This is only the first two segments of RA's format; calls made while a game is
+     *  running append the core as a third (see userAgent). */
+    private val USER_AGENT_PREFIX =
         "TacoBoy/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})"
+
+    /** RA's user agent format is `EmulatorName/v1.0.0 (OSName 10.0) core_name/v0.5.0`, the
+     *  core segment "strongly advised" for multi-core emulators (compliance audit C1b).
+     *  Calls made from the library or Settings, with no game running, send no core segment,
+     *  as RetroArch does. */
+    internal fun userAgent(prefix: String, coreClause: String?): String =
+        if (coreClause.isNullOrEmpty()) prefix else "$prefix $coreClause"
+
+    /** `genesis_plus_gx_libretro_android/v1.7.4_b7e79b3`. Follows RetroArch's
+     *  `rcheevos_get_user_agent` (cheevos_client.c), which RA's own examples come from: the
+     *  core's file name without its extension, then `/` and the core's self-reported
+     *  library_version, with spaces in either turned into underscores. The version is read
+     *  from the running core rather than recorded here, so a rebuilt core cannot leave a
+     *  stale one behind.
+     *
+     *  One deliberate difference: a leading `lib` is dropped. TacoBoy's mGBA file carries
+     *  one only because it kept an old filename (CHANGELOG 2026-08-24); the buildbot and
+     *  RetroArch call the same core `mgba_libretro_android`, and RA should see one name
+     *  for one core regardless of which frontend's packaging it came through. */
+    internal fun coreClause(coreFileName: String, libraryVersion: String): String {
+        val name = coreFileName.substringBeforeLast('.').removePrefix("lib").replace(' ', '_')
+        val version = libraryVersion.trim().replace(' ', '_')
+        return if (version.isEmpty()) name else "$name/$version"
+    }
 
     /** `valid` false covers both a network failure and RA actually rejecting the
      *  credentials (401) — verifyCredentials doesn't distinguish them since either
@@ -111,10 +131,10 @@ object RetroAchievementsClient {
      * romhacks, or a hash rule this app hasn't implemented correctly yet),
      * not an error.
      */
-    fun identifyGameId(username: String, apiKey: String, md5: String): Int? {
+    fun identifyGameId(username: String, apiKey: String, md5: String, core: String? = null): Int? {
         val url = "$CONNECT_API_BASE_URL?r=gameid&u=${Uri.encode(username)}&t=${Uri.encode(apiKey)}&m=$md5"
         return try {
-            val json = get(url) ?: return null
+            val json = get(url, core) ?: return null
             json.optInt("GameID", 0)
         } catch (e: Exception) {
             TacoBoyLog.e(TAG, "Game identification failed", e)
@@ -156,11 +176,11 @@ object RetroAchievementsClient {
      * `DateEarnedHardcore` are simply absent from an achievement's object when it hasn't
      * been earned rather than present-but-null.
      */
-    fun getGameProgress(username: String, apiKey: String, gameId: Int): GameProgress? {
+    fun getGameProgress(username: String, apiKey: String, gameId: Int, core: String? = null): GameProgress? {
         val url = "$WEB_API_BASE_URL/API_GetGameInfoAndUserProgress.php" +
             "?u=${Uri.encode(username)}&y=${Uri.encode(apiKey)}&g=$gameId"
         return try {
-            val json = get(url) ?: return null
+            val json = get(url, core) ?: return null
             val title = json.optString("Title").ifEmpty { return null }
             val iconPath = json.optString("ImageIcon").ifEmpty { null }
             val achievementsJson = json.optJSONObject("Achievements") ?: JSONObject()
@@ -208,10 +228,15 @@ object RetroAchievementsClient {
      * "specialty"/"exclusive") and `Achievements[]` (same per-achievement fields as
      * before -- `ID`/`MemAddr`/etc).
      */
-    fun getAchievementDefinitions(username: String, sessionToken: String, gameId: Int): List<AchievementDefinition>? {
+    fun getAchievementDefinitions(
+        username: String,
+        sessionToken: String,
+        gameId: Int,
+        core: String? = null,
+    ): List<AchievementDefinition>? {
         val url = "$CONNECT_API_BASE_URL?r=achievementsets&u=${Uri.encode(username)}&t=${Uri.encode(sessionToken)}&g=$gameId"
         return try {
-            val json = get(url) ?: return null
+            val json = get(url, core) ?: return null
             parseAchievementDefinitions(json)
         } catch (e: Exception) {
             TacoBoyLog.e(TAG, "Fetching achievement definitions failed", e)
@@ -243,12 +268,18 @@ object RetroAchievementsClient {
      * `rapi/rc_api_runtime.c`, not guessed: MD5(achievementId + username + hardcoreFlag),
      * each concatenated as their plain decimal-string form, hex-encoded lowercase.
      */
-    fun awardAchievement(username: String, sessionToken: String, achievementId: Int, gameHash: String): Boolean {
+    fun awardAchievement(
+        username: String,
+        sessionToken: String,
+        achievementId: Int,
+        gameHash: String,
+        core: String? = null,
+    ): Boolean {
         val validation = awardAchievementSignature(achievementId, username, hardcore = 0)
         val url = "$CONNECT_API_BASE_URL?r=awardachievement&u=${Uri.encode(username)}&t=${Uri.encode(sessionToken)}" +
             "&a=$achievementId&h=0&m=${Uri.encode(gameHash)}&v=$validation"
         return try {
-            val json = get(url) ?: return false
+            val json = get(url, core) ?: return false
             json.optBoolean("Success", false)
         } catch (e: Exception) {
             TacoBoyLog.e(TAG, "Awarding achievement $achievementId failed", e)
@@ -269,14 +300,15 @@ object RetroAchievementsClient {
         return digest.joinToString("") { "%02x".format(it) }
     }
 
-    private fun get(url: String): JSONObject? {
+    /** `core` is a coreClause, passed only by calls made while a game is running. */
+    private fun get(url: String, core: String? = null): JSONObject? {
         var connection: HttpURLConnection? = null
         return try {
             connection = (URL(url).openConnection() as HttpURLConnection).apply {
                 connectTimeout = TIMEOUT_MS
                 readTimeout = TIMEOUT_MS
                 requestMethod = "GET"
-                setRequestProperty("User-Agent", USER_AGENT)
+                setRequestProperty("User-Agent", userAgent(USER_AGENT_PREFIX, core))
             }
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
             JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
@@ -292,7 +324,7 @@ object RetroAchievementsClient {
                 connectTimeout = TIMEOUT_MS
                 readTimeout = TIMEOUT_MS
                 requestMethod = "POST"
-                setRequestProperty("User-Agent", USER_AGENT)
+                setRequestProperty("User-Agent", USER_AGENT_PREFIX)
                 setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 doOutput = true
             }

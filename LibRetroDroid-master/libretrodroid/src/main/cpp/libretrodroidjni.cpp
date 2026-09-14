@@ -54,6 +54,13 @@ extern "C" {
 
 extern "C" {
 
+JNIEXPORT jstring JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_getLibraryVersion(
+    JNIEnv* env,
+    jclass obj
+) {
+    return env->NewStringUTF(LibretroDroid::getInstance().getLibraryVersion().c_str());
+}
+
 JNIEXPORT jint JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_availableDisks(
     JNIEnv* env,
     jclass obj

@@ -119,6 +119,8 @@ public:
     std::vector<std::vector<struct Controller>> getControllers();
     void setControllerType(unsigned int port, unsigned int type);
 
+    std::string getLibraryVersion();
+
     int availableDisks();
     int currentDisk();
     void changeDisk(unsigned int index);

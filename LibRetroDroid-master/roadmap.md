@@ -13,7 +13,7 @@ what is still to do.
 | 3 – Polish and handheld UX | v0.2 | Done, except battery (carried into Phase 5) |
 | 4 – Hardening | v0.2 | Crash handling and settings done; help and feedback carried forward |
 | **5 – Finish what's open** | **v0.3** | Not started |
-| **6 – Achievements done properly** | **v0.4** | Not started |
+| **6 – Achievements done properly** | **v0.4** | Started: 6.1 item 4 done |
 | **7 – Reach** | **v1.0** | Not started |
 
 ## Principles
@@ -103,8 +103,7 @@ cleanly, not a black screen.
 
 ### 5.3 Library tabs that scale
 - The tab row has been tightened repeatedly and "buys room for one or two more systems at
-  most". NES
-  and Sega CD make twelve. Redesign before adding them, not after.
+  most". NES and Sega CD make twelve. Redesign before adding them, not after.
 - Options to weigh: a system dropdown, a scrolling chip row, or hiding systems with no ROM
   folder set.
 
@@ -150,7 +149,7 @@ The item numbers and section references are from `RETROACHIEVEMENTS-COMPLIANCE.m
 2. Force a game reset when switching casual to hardcore (B7), using the existing
    `EXTRA_FORCE_RELOAD_ROM_URI` reload path.
 3. On-screen hardcore indicator (E2), same pattern as the TURBO badge.
-4. Add the active core to the user agent (C1).
+4. ~~Add the active core to the user agent (C1).~~ Done 2026-09-14.
 5. Resume-on-launch drops to casual (B6).
 6. Upstream links in the About licence list (F2).
 

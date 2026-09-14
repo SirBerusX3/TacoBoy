@@ -85,6 +85,60 @@ class RetroAchievementsClientTest {
         assertNull(RetroAchievementsClient.parseAchievementDefinitions(JSONObject("""{"Success": false}""")))
     }
 
+    /** RA's requirements list this exact string as a valid user agent. Built through the same
+     *  two functions TacoBoy uses, it must come out byte for byte, or the format was misread. */
+    @Test
+    fun `user agent reproduces RetroAchievements' own published example`() {
+        val clause = RetroAchievementsClient.coreClause("genesis_plus_gx_libretro_android.so", "v1.7.4 8ea39ee")
+        assertEquals(
+            "RetroArch/1.20.0 (Android 13.0) genesis_plus_gx_libretro_android/v1.7.4_8ea39ee",
+            RetroAchievementsClient.userAgent("RetroArch/1.20.0 (Android 13.0)", clause),
+        )
+    }
+
+    /** RA's fbneo example has a double underscore, which is what replacing each space one for
+     *  one gives from a version with two spaces. Collapsing them would not match. */
+    @Test
+    fun `every space becomes an underscore`() {
+        assertEquals("fbneo_libretro/v1.0.0.03__e90b821", RetroAchievementsClient.coreClause("fbneo_libretro.so", "v1.0.0.03  e90b821"))
+    }
+
+    /** The version strings actually embedded in TacoBoy's rebuilt cores (CHANGELOG 2026-09-11). */
+    @Test
+    fun `core clauses for the shipped cores`() {
+        assertEquals(
+            "mednafen_psx_hw_libretro_android/0.9.44.1-GLES3_d97afa8",
+            RetroAchievementsClient.coreClause("mednafen_psx_hw_libretro_android.so", "0.9.44.1-GLES3 d97afa8"),
+        )
+        assertEquals(
+            "snes9x_libretro_android/1.60_bd9246d",
+            RetroAchievementsClient.coreClause("snes9x_libretro_android.so", "1.60 bd9246d"),
+        )
+    }
+
+    /** mGBA's file keeps an old `lib` prefix; RA should see the name the buildbot gives it. */
+    @Test
+    fun `a leading lib is dropped from the core name`() {
+        assertEquals(
+            "mgba_libretro_android/0.11-10126-e31759b",
+            RetroAchievementsClient.coreClause("libmgba_libretro_android.so", "0.11-10126-e31759b"),
+        )
+    }
+
+    /** A core that reports no version still names itself, with no dangling slash. */
+    @Test
+    fun `a missing version leaves just the core name`() {
+        assertEquals("handy_libretro_android", RetroAchievementsClient.coreClause("handy_libretro_android.so", ""))
+        assertEquals("handy_libretro_android", RetroAchievementsClient.coreClause("handy_libretro_android.so", "  "))
+    }
+
+    /** Library and Settings calls run with no game loaded, and send the first two segments only. */
+    @Test
+    fun `no core means no core segment`() {
+        assertEquals("TacoBoy/0.2.1 (Android 16)", RetroAchievementsClient.userAgent("TacoBoy/0.2.1 (Android 16)", null))
+        assertEquals("TacoBoy/0.2.1 (Android 16)", RetroAchievementsClient.userAgent("TacoBoy/0.2.1 (Android 16)", ""))
+    }
+
     @Test
     fun `returns null when no core set is present`() {
         val response = JSONObject(

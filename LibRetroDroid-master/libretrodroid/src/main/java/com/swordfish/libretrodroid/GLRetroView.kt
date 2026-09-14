@@ -262,6 +262,13 @@ class GLRetroView(
         }
     }
 
+    /** The loaded core's own version string (libretro's library_version), or "" with no core.
+     *  Not routed through the emulation thread: it reads a static string under coreLock, and
+     *  a queued event would never run while the view is paused. */
+    fun getLibraryVersion(): String {
+        return LibretroDroid.getLibraryVersion()
+    }
+
     fun getAvailableDisks(useEmulationThread: Boolean = true): Int {
         return runOnEmulationThread(useEmulationThread) { LibretroDroid.availableDisks() }
     }

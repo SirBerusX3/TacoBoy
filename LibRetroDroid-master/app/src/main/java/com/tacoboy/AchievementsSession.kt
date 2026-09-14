@@ -35,6 +35,9 @@ class AchievementsSession(
     private var gameHash: String? = null
     private var achievementsById: Map<Int, RetroAchievementsClient.AchievementInfo> = emptyMap()
     private val submittedThisSession = mutableSetOf<Int>()
+    // The user agent's core segment (RetroAchievementsClient.coreClause), fixed for the
+    // session: the core cannot change without a new game load, which makes a new session.
+    private var coreClause: String? = null
 
     // Lightweight per-session pause (quick menu's "Achievement Tracking" toggle) --
     // distinct from Settings > Achievements' login/logout, which tears down live
@@ -63,7 +66,7 @@ class AchievementsSession(
         trackingEnabled = enabled
     }
 
-    fun start(rom: RomLibrary.RomEntry, gameSystem: GameSystem) {
+    fun start(rom: RomLibrary.RomEntry, gameSystem: GameSystem, core: CoreDefinition) {
         lifecycleOwner.lifecycleScope.launch {
             val apiKeyUsername = TacoBoyPrefs.getRetroAchievementsUsername(context) ?: return@launch
             val apiKey = TacoBoyPrefs.getRetroAchievementsApiKey(context) ?: return@launch
@@ -71,12 +74,17 @@ class AchievementsSession(
             val sessionToken = TacoBoyPrefs.getRetroAchievementsSessionToken(context) ?: return@launch
 
             val activation = withContext(Dispatchers.IO) {
+                // Read off the main thread: the native getter waits on coreLock, which
+                // retro_run holds for the length of a frame.
+                val clause = RetroAchievementsClient.coreClause(core.fileName, retroView.getLibraryVersion())
+                coreClause = clause
+                TacoBoyLog.d(TAG, "user agent core segment: $clause")
                 val hash = RomHasher.raHash(context, rom) ?: return@withContext null
-                val gameId = RetroAchievementsClient.identifyGameId(apiKeyUsername, apiKey, hash)
+                val gameId = RetroAchievementsClient.identifyGameId(apiKeyUsername, apiKey, hash, clause)
                 if (gameId == null || gameId <= 0) return@withContext null
-                val progress = RetroAchievementsClient.getGameProgress(apiKeyUsername, apiKey, gameId)
+                val progress = RetroAchievementsClient.getGameProgress(apiKeyUsername, apiKey, gameId, clause)
                     ?: return@withContext null
-                val definitions = RetroAchievementsClient.getAchievementDefinitions(sessionUsername, sessionToken, gameId)
+                val definitions = RetroAchievementsClient.getAchievementDefinitions(sessionUsername, sessionToken, gameId, clause)
                     ?: return@withContext null
                 Triple(hash, progress, definitions)
             }
@@ -138,7 +146,7 @@ class AchievementsSession(
         ).show()
 
         withContext(Dispatchers.IO) {
-            RetroAchievementsClient.awardAchievement(sessionUsername, sessionToken, achievementId, hash)
+            RetroAchievementsClient.awardAchievement(sessionUsername, sessionToken, achievementId, hash, coreClause)
         }
     }
 
