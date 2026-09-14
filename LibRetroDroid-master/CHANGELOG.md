@@ -5,6 +5,50 @@ Taco project. Kept up to date so a new session can pick up context without
 re-deriving it. See `roadmap.md` for the longer-term plan; this file tracks
 what's actually been done against it.
 
+## 2026-09-14 (achievements track on an offline start — cached game data)
+
+**A game started with no connection now tracks achievements**, provided it has been started
+online at least once. That closes the open question in the queue entry below: starting a
+session needs RA to identify the game and send its definitions, so an offline start tracked
+nothing, and the unlock queue only helped when a connection dropped mid-game. For a player who
+is often offline that was most of the time.
+
+**Every successful online start saves what it fetched**, in `AchievementCache`: the game's RA
+id, its achievement list with the player's earned flags, and the trigger definitions, one file
+per game keyed by its RA hash, in app-private storage. When a start cannot reach RA,
+`AchievementsSession.fetchOrLoadCached` uses that file instead, arms the unearned achievements,
+and unlocks go into the queue as usual. A toast says the game is tracking from saved data and
+that unlocks will be sent later; the per-session "saved offline" toast is then suppressed as a
+repeat. A few points about when it is used:
+
+  - **Only when a request fails.** RA answering "not recognised" (game id 0) is a real answer,
+    and no cache overrides it.
+  - **Only for the account that fetched it.** The earned flags are per player, so a different
+    login never starts from someone else's list.
+  - **A damaged file starts nothing**: no account, no game id, or no definitions at all is
+    refused rather than starting a session with nothing to evaluate. One malformed achievement
+    or definition is skipped instead.
+
+**The trade-off, accepted with the user:** offline, a game runs on the definitions as they were
+at its last online start. If RA has changed an achievement since, the old version is evaluated
+until the next online start refreshes the file. RA still has the final say when the queue
+sends the unlock. Earned flags can be stale the same way: an achievement earned elsewhere since
+then may trigger again offline, and RA answers "already unlocked", which the queue counts as
+sent.
+
+**Not covered:** a game never started online has no RA id to cache, since identifying it takes
+the server, so it still tracks nothing offline.
+
+**Verified on the SM-S938B**, resuming 007: Tomorrow Never Dies:
+  - Online start: "41 of 41 achievements active", and the cache file written, `-rw-------`.
+  - Wi-Fi and data off, app restarted: "Game identification failed", then "RetroAchievements
+    unreachable: tracking from data cached at 1789390503218", then "41 of 41 achievements
+    active". A toast was on screen, but screenshots blank toast text, so its wording was not
+    read back. Network restored afterwards.
+
+No achievement was earned offline in this run; the path from there on is the queue's, verified
+in the entry below. 5 new tests, 58 passing.
+
 ## 2026-09-14 (offline unlock queue — roadmap 6.2.7)
 
 **An achievement earned without a connection is no longer lost.** Before this, an unlock was

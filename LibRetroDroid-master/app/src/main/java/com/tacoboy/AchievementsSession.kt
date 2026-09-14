@@ -83,20 +83,21 @@ class AchievementsSession(
                 coreClause = clause
                 TacoBoyLog.d(TAG, "user agent core segment: $clause")
                 val hash = RomHasher.raHash(context, rom) ?: return@withContext null
-                val gameId = RetroAchievementsClient.identifyGameId(apiKeyUsername, apiKey, hash, clause)
-                if (gameId == null || gameId <= 0) return@withContext null
-                val progress = RetroAchievementsClient.getGameProgress(apiKeyUsername, apiKey, gameId, clause)
-                    ?: return@withContext null
-                val definitions = RetroAchievementsClient.getAchievementDefinitions(sessionUsername, sessionToken, gameId, clause)
-                    ?: return@withContext null
-                Triple(hash, progress, definitions)
+                fetchOrLoadCached(hash, apiKeyUsername, apiKey, sessionUsername, sessionToken, clause)
             }
 
             if (activation == null) {
                 retroView.resetAchievements()
                 return@launch
             }
-            val (hash, progress, definitions) = activation
+            val hash = activation.hash
+            val progress = activation.progress
+            val definitions = activation.definitions
+            if (activation.fromCache) {
+                // The cached-data toast already says unlocks will be sent later.
+                toldQueuedOffline = true
+                Toast.makeText(context, R.string.achievements_tracking_from_cache_toast, Toast.LENGTH_LONG).show()
+            }
 
             gameHash = hash
             achievementsById = progress.achievements.associateBy { it.id }
@@ -133,6 +134,50 @@ class AchievementsSession(
                 onAchievementTriggered(sessionUsername, sessionToken, achievementId)
             }
         }
+    }
+
+    private class Activation(
+        val hash: String,
+        val progress: RetroAchievementsClient.GameProgress,
+        val definitions: List<RetroAchievementsClient.AchievementDefinition>,
+        val fromCache: Boolean,
+    )
+
+    /**
+     * What a session needs to start, from RA when it answers and from AchievementCache when it
+     * cannot be reached. Every successful fetch refreshes the cache, so it is as current as the
+     * last online start.
+     *
+     * RA answering "not recognised" (game id 0) is a real answer, so the cache is not consulted:
+     * only a failed request falls back. Must run off the main thread.
+     */
+    private fun fetchOrLoadCached(
+        hash: String,
+        apiKeyUsername: String,
+        apiKey: String,
+        sessionUsername: String,
+        sessionToken: String,
+        clause: String,
+    ): Activation? {
+        val gameId = RetroAchievementsClient.identifyGameId(apiKeyUsername, apiKey, hash, clause)
+        if (gameId != null && gameId <= 0) return null
+        val progress = gameId?.let { RetroAchievementsClient.getGameProgress(apiKeyUsername, apiKey, it, clause) }
+        val definitions = gameId?.let { RetroAchievementsClient.getAchievementDefinitions(sessionUsername, sessionToken, it, clause) }
+        if (progress != null && definitions != null) {
+            AchievementCache.save(
+                context, hash,
+                AchievementCache.Entry(apiKeyUsername, progress, definitions, System.currentTimeMillis()),
+            )
+            return Activation(hash, progress, definitions, fromCache = false)
+        }
+
+        val cached = AchievementCache.load(context, hash, apiKeyUsername)
+        if (cached == null) {
+            TacoBoyLog.d(TAG, "RetroAchievements unreachable and nothing cached for this game: not tracking")
+            return null
+        }
+        TacoBoyLog.d(TAG, "RetroAchievements unreachable: tracking from data cached at ${cached.cachedAtMs}")
+        return Activation(hash, cached.progress, cached.definitions, fromCache = true)
     }
 
     private suspend fun onAchievementTriggered(sessionUsername: String, sessionToken: String, achievementId: Int) {

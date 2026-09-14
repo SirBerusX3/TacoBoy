@@ -155,7 +155,7 @@ The item numbers and section references are from `RETROACHIEVEMENTS-COMPLIANCE.m
 
 ### 6.2 Medium
 7. ~~Offline unlock queue with retry (A4) — an unlock earned without signal is not lost.~~ Done 2026-09-14,
-   for games started online. A game started offline still tracks nothing.
+   including offline starts of any game played online at least once (AchievementCache).
 8. A real privacy policy (F5). Mostly writing, but it must be exact.
 9. Measured-progress display (A2b), e.g. "37 / 100 coins".
 
